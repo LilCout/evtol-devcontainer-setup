@@ -87,9 +87,10 @@
     "CLAUDE_CONFIG_DIR": "/home/user/.claude"
   },
 
-  /// Installed when the container is created, on top of the image.
+  /// Developer tools, installed when the container is created, on top of the image.
   /// Claude Code is installed with npm, which the Node.js feature provides.
   "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": { "version": "2.102.0" },
     "ghcr.io/devcontainers/features/node:1": {},
     "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
@@ -108,7 +109,9 @@
     }
   },
 
-  "postCreateCommand": "(sudo apt-get update || echo \"apt-get update failed; package lists are empty, so rosdep install will fail until you run: sudo apt-get update\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached rosdep data\")",
+  /// The image has no folders for the mission-logs and Claude Code volumes, so they
+  /// are mounted as root; hand them to `user` (uid already updated at this point).
+  "postCreateCommand": "sudo chown \"$(id -u):$(id -g)\" ~/evtol/mission_logs ~/.claude; (sudo apt-get update || echo \"apt-get update failed; package lists are empty, so rosdep install will fail until you run: sudo apt-get update\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached rosdep data\")",
 
   /// Run as the image's non-root `user`. On Linux the Dev Containers CLI gives it
   /// your uid/gid, so files created in the workspace are yours (Docker); with

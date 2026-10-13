@@ -76,7 +76,7 @@ QGroundControl on your computer, not in the container.
 | `ros-humble-ros-gzgarden-*`, `ros-humble-desktop`, vision_msgs, cv_bridge | installed from apt |
 | numpy, opencv-contrib-python, mediapipe, setuptools, packaging | installed with pip, system-wide |
 | `behaviortree_cpp`, `px4_msgs`, `px4_ros2_interface` | prebuilt underlay in `/opt/evtol_deps` |
-| `gh` (GitHub CLI, v2.102.0) | installed from the release `.deb` |
+| `gh` (GitHub CLI, v2.102.0) | Dev Container feature, installed when the container is created |
 | `~/evtol/mission_logs` (rosbags recorded by mission launches) | named volume `evtol-mission-logs` |
 | Claude Code | Dev Container feature, installed when the container is created; state in volume `evtol-claude` |
 | `src/`, `build/`, `install/` | in the workspace folder, so they survive rebuilds |
@@ -116,7 +116,8 @@ built and takes precedence over the image's.
   an old rosdep cache. Two more volumes hold data rather than caches:
   `evtol-mission-logs` (`~/evtol/mission_logs`, the rosbag of every mission
   run) and `evtol-claude` (`~/.claude`, Claude Code's login and settings, via
-  `CLAUDE_CONFIG_DIR`). Copy a log out with
+  `CLAUDE_CONFIG_DIR`). The image has no folders for these two, so they are
+  mounted as root and `postCreateCommand` hands them to `user`. Copy a log out with
   `podman cp <container>:/home/user/evtol/mission_logs/<run> .`. Check usage with `ccache -s`; start over with
   `podman volume rm evtol-ccache` (container stopped).
 - Worlds linked by `simulate.sh` go into the image's PX4 tree and are re-linked

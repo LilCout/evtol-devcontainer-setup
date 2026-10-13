@@ -1,107 +1,88 @@
-// One config for every machine. Active as shipped: Linux + NVIDIA GPU.
-// For another setup, comment/uncomment the lines tagged with it:
-//   [NVIDIA]     Linux with an NVIDIA GPU (also hybrid Intel/AMD + NVIDIA laptops)
-//   [Intel/AMD]  Linux with an Intel or AMD GPU (Mesa)
-//   [Linux]      any Linux host (X11 or Wayland with XWayland)
-//   [Windows]    Windows 11 + WSL2 + WSLg: clone the workspace inside your WSL
-//                Ubuntu, open it from there ("WSL: Open Folder in WSL"), then
-//                "Reopen in Container". GPU through WSL (any vendor); for no
-//                GPU, use the [No GPU] lines instead of the Windows GPU ones
-//   [No GPU]     VMs or machines without a usable GPU: software rendering
-// Every list below ends with a line all setups share, so commenting lines in
-// or out never leaves a stray comma.
 {
-  "name": "evtol-dev",
+  "name": "evtol-devcontainer",
   "build": { "dockerfile": "Dockerfile" },
+  // "image": "ghcr.io/your-github-username/evtol-dev@sha256:…",
 
-  // [Linux] Writes an X cookie for Gazebo's window to $XDG_RUNTIME_DIR.
-  // [Windows] Comment this line out (WSLg needs no cookie).
-  "initializeCommand": "bash .devcontainer/xauth.sh",
+  /// [Linux] Writes an X cookie for Gazebo's window to $XDG_RUNTIME_DIR.
+  // "initializeCommand": "bash .devcontainer/xauth.sh",
 
   "runArgs": [
-    // [NVIDIA] GPU through CDI (Podman, and Docker 25+ with the NVIDIA toolkit)
-    "--device=nvidia.com/gpu=all",
+    /// [Linux - NVIDIA GPU rendering] GPU through CDI (Podman and Docker 25+ with the NVIDIA toolkit)
+    // "--device=nvidia.com/gpu=all",
 
-    // [Intel/AMD] Instead of the NVIDIA line. The container user is not root,
-    // so it needs the groups that own /dev/dri/renderD128 (`render`) and
-    // /dev/dri/card0 (`video`):
-    //   rootless Podman: keep-groups passes your host groups in;
-    //   Docker: keep-groups is Podman-only and makes `docker run` fail; use the
-    //   numeric ids from `stat -c %g /dev/dri/renderD128 /dev/dri/card0`.
+    /// [Linux - Intel/AMD GPU rendering]
+    /// The user needs the groups that own
+    /// /dev/dri/renderD128 (`render`) and /dev/dri/card0 (`video`).
+    /// With Docker, check the ids with `stat -c %g /dev/dri/renderD128 /dev/dri/card0`.
     // "--device=/dev/dri",
     // "--group-add=keep-groups",               // rootless Podman
     // "--group-add=109", "--group-add=44",     // Docker (your ids)
 
-    // [Windows] Instead of the NVIDIA line: WSL's GPU device. Mesa's d3d12
-    // driver renders OpenGL through DirectX 12 on the Windows driver, so this
-    // works for NVIDIA, AMD and Intel alike. Check with: glxinfo -B | grep -i renderer
-    // (it should say "D3D12 (<your GPU>)"; "llvmpipe" means software rendering).
+    /// [Windows - GPU rendering]
     // "--device=/dev/dxg",
 
-    // [No GPU] No GPU line at all.
-
-    // [All] SELinux hosts (Fedora and friends) block the X socket otherwise;
-    // ignored where there is no SELinux.
+    /// Disables SELinux/AppArmor label checks on Fedora-based distros, so Gazebo can open the X socket.
     "--security-opt=label=disable",
-    // [All] Host network, so QGroundControl and the drone see the simulator.
-    // [Windows] Only shares Windows' network if Docker Desktop's host
-    // networking is on (Settings > Resources > Network); harmless otherwise.
+
+    /// Host network
     "--network=host"
   ],
 
   "mounts": [
-    // [Linux] X server socket and the cookie written by xauth.sh
-    "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
-    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/px4-devcontainer.xauth,target=/tmp/px4.xauth,readonly",
+    /// [Linux] X server socket and the cookie written by xauth.sh
+    // "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
+    // "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/px4-devcontainer.xauth,target=/tmp/px4.xauth,readonly",
 
-    // [Windows] Instead of the two [Linux] lines: WSLg's X server, and WSL's GPU
-    // driver libraries (the image registers /usr/lib/wsl/lib with the library
-    // loader, as WSL's own Ubuntu does; postStartCommand refreshes it)
+    /// [Windows]: WSLg's X server and WSL's GPU driver libraries (LD_LIBRARY_PATH)
     // "type=bind,source=/mnt/wslg/.X11-unix,target=/tmp/.X11-unix,readonly",
     // "type=bind,source=/usr/lib/wsl,target=/usr/lib/wsl,readonly",
 
-    // [All] The team's models/worlds repo, cloned next to this workspace (see README)
+    /// The team's models/worlds repo, cloned next to this workspace
     "type=bind,source=${localWorkspaceFolder}/../PX4-gazebo-models,target=/home/user/PX4-gazebo-models",
 
-    // [All] Caches that survive image rebuilds (named volumes, managed by Podman/Docker):
-    //   ccache: compiled objects for PX4 and colcon builds
-    //   Gazebo Fuel: models and worlds downloaded from app.gazebosim.org
-    //   ~/.ros: ROS logs and the rosdep cache (refreshed by postCreateCommand)
+    /// Caches that survive image rebuilds (volumes managed by Podman/Docker):
+    ///   ccache: compiled objects for PX4 and colcon builds
+    ///   Gazebo Fuel: models and worlds downloaded from app.gazebosim.org
+    ///   ~/.ros: ROS logs and the rosdep cache (refreshed by postCreateCommand)
     "type=volume,source=evtol-ccache,target=/home/user/.ccache",
     "type=volume,source=evtol-gz-fuel,target=/home/user/.gz/fuel",
     "type=volume,source=evtol-ros-home,target=/home/user/.ros"
   ],
 
   "containerEnv": {
-    // [Linux] Your display and the cookie mounted above
-    "DISPLAY": "${localEnv:DISPLAY}",
-    "XAUTHORITY": "/tmp/px4.xauth",
+    /// [Linux] Display cookie
+    // "DISPLAY": "${localEnv:DISPLAY}",
+    // "XAUTHORITY": "/tmp/px4.xauth",
 
-    // [Windows] Instead of the two [Linux] lines:
+    /// [Windows]
     // "DISPLAY": ":0",
-    // [Windows] Hybrid laptops: which GPU Mesa uses, by a word of its name as
-    // Windows shows it ("NVIDIA", "AMD", "Intel"). Remove with a single GPU.
+
+    /// [Windows - GPU rendering] WSL's GPU libraries for Mesa's d3d12 driver
+    /// For multiple GPUs, choose between "NVIDIA", "Intel" and "AMD"
+    // "LD_LIBRARY_PATH": "/usr/lib/wsl/lib",
     // "MESA_D3D12_DEFAULT_ADAPTER_NAME": "NVIDIA",
 
-    // [NVIDIA] Render Gazebo on the NVIDIA GPU (PRIME offload on hybrid laptops)
-    "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,display",
-    "__NV_PRIME_RENDER_OFFLOAD": "1",
-    "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+    /// [Linux - NVIDIA GPU rendering] PRIME offload on hybrid laptops
+    // "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,display",
+    // "__NV_PRIME_RENDER_OFFLOAD": "1",
+    // "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
 
-    // [No GPU] Software rendering (also delete the GPU runArgs)
+    /// Software rendering (disable GPU acceleration)
     // "LIBGL_ALWAYS_SOFTWARE": "1",
 
-    // [All] ccache: the base image already routes gcc/g++ through it
+    /// ccache
     "CCACHE_DIR": "/home/user/.ccache",
     "CCACHE_MAXSIZE": "10G",
-    // [All] Qt (Gazebo's GUI) through X11/XWayland
+
+    /// Qt (Gazebo's GUI) through X11/XWayland
     "QT_QPA_PLATFORM": "xcb"
   },
 
+  /// VS Code extensions in the container
   "customizations": {
     "vscode": {
       "extensions": [
-        "Ranch-Hand-Robotics.rde-ros-2",       // ROS 2: launch files, run/debug nodes (successor of ms-iot.vscode-ros)
+        "Ranch-Hand-Robotics.rde-ros-2",       // ROS 2: launch files, run/debug nodes
         "ms-vscode.cpptools-extension-pack",   // C/C++ IntelliSense, debugger, CMake Tools
         "ms-python.python",                    // Python, Pylance, debugger
         "redhat.vscode-xml",                   // package.xml, launch XML, SDF worlds/models, Behavior Tree XML
@@ -111,19 +92,11 @@
     }
   },
 
-  // Once per container: package lists for `rosdep install` (the image deletes
-  // them to stay small) and a fresh rosdep cache. Each step only warns when it
-  // fails (e.g. offline), so creating the container never fails because of them.
   "postCreateCommand": "(sudo apt-get update || echo \"apt-get update failed; package lists are empty, so rosdep install will fail until you run: sudo apt-get update\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached rosdep data\")",
 
-  // Every start: refresh the library loader's cache, so it sees WSL's GPU
-  // libraries in /usr/lib/wsl/lib when they are mounted ([Windows]). Harmless
-  // everywhere else: the folder doesn't exist there.
-  "postStartCommand": "sudo ldconfig",
-
-  // Run as the image's non-root `user`. On Linux the Dev Containers CLI gives it
-  // your uid/gid, so files created in the workspace are yours (Docker); with
-  // rootless Podman the CLI also adds --userns=keep-id (Dev Containers CLI 0.76+).
+  /// Run as the image's non-root `user`. On Linux the Dev Containers CLI gives it
+  /// your uid/gid, so files created in the workspace are yours (Docker); with
+  /// rootless Podman the CLI also adds --userns=keep-id (Dev Containers CLI 0.76+).
   "containerUser": "user",
   "remoteUser": "user",
   "updateRemoteUserUID": true

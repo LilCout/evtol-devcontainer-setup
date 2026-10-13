@@ -1,0 +1,430 @@
+# Workspace manifest for the eVTOL ITA ROS 2 workspace.
+#
+# Usage (from the workspace root, e.g. ~/evtol/dev):
+#   vcs import src < src/evtol-dev/evtol.repos
+#
+# DOIS MANIFESTOS, DUAS PERGUNTAS DIFERENTES
+#
+#   evtol.repos  (este)  -> "o que o time esta desenvolvendo AGORA"
+#   voo.repos            -> "o que exatamente voou naquele dia"
+#
+# Os repositorios da equipe acompanham a `main`. Os de terceiros seguem em tag:
+# nao sao nossos, nao ha por que flutuarem.
+#
+# Por que mudou. Pinar tag no dia a dia cobrava um preco que nao se pagava:
+# todo `vcs import` deixava os 18 repositorios em detached HEAD (o erro numero
+# um de quem chegava no workspace), e cada correcao de uma linha exigia DOIS
+# pull requests -- um na biblioteca, outro aqui subindo o pin. Enquanto o
+# segundo nao subia, o trabalho existia so no GitHub.
+#
+# Pior: a defasagem era silenciosa. O pin do vision_geometry dizia
+# `v0.1.2  # bloco-ancora do frame otico da camera` -- e a tag v0.1.2 nao tinha
+# o bloco, que so entrou na main depois. O CI, que lia a tag, reprovava o
+# docs/CONTRATOS.md por semanas, e ninguem conseguia ver por que.
+#
+# A garantia de reprodutibilidade NAO foi jogada fora -- ela mudou de lugar,
+# para onde de fato paga:
+#
+#     scripts/congelar.sh          # gera voo.repos com o hash exato de cada HEAD
+#     vcs import src < voo.repos
+#
+# Rode o congelamento antes de competir, com o workspace que voce acabou de
+# testar.
+#
+# Non-ROS prerequisites (PX4-Autopilot, Micro-XRCE-DDS-Agent, PX4-gazebo-models)
+# are NOT listed here — they live outside the colcon workspace. Their pinned
+# versions are documented in SETUP.md.
+
+repositories:
+
+  # ---------- Layer 0: shared message/service interfaces ----------
+  custom_msgs:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/custom_msgs.git
+    version: main
+    # Contem BaseCircle.msg (deteccao de base circular: posicao, raio e ponto
+    # de saida) e MultiBaseDetection.msg (lista de BaseDetection com o frame
+    # JPEG de origem), e a dependencia sensor_msgs que a segunda exige. Ja
+    # consumido pelo cv_nodes (base_detector_itjbx2026, circle_detector) e pelo
+    # itajuba_2026 (fase1/2/4).
+
+  # ---------- Layer 1: PX4 hardware abstraction ----------
+  drone_lib:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/drone_lib.git
+    version: main
+    # A v0.2.0 declara getHandGestures(), getHandLocation() e resetHands(), mas
+    # as inscricoes nos topicos nunca eram criadas: as chamadas
+    # create_subscription se perderam entre 2025 e 2026. Os getters devolviam
+    # {"", ""} e {0.5, 0.5} para sempre, entao uma missao de gestos construida
+    # sobre eles compilava, subia e nunca via um gesto. Ninguem no manifesto as
+    # usava. A leitura de visao passa a morar num no da missao, com mutex.
+    #
+    # A v0.1.0 exige cv_bridge no CMakeLists sem declara-lo no package.xml e
+    # sem usa-lo em lugar nenhum. Numa imagem minima -- e numa Jetson ou
+    # Raspberry recem-instalada -- o build falha, e o rosdep nao pode ajudar
+    # porque a dependencia nao esta declarada. O CI do stdstates reprovava
+    # por causa disso, ao compilar o drone_lib pinado.
+
+  # ---------- Layer 1: ArduPilot hardware abstraction ----------
+  # O time voa PX4 em tudo. Este e o unico projeto em ArduPilot, e por isso
+  # tem uma camada 1 propria: o drone_lib nao serve aqui, porque ele fala
+  # px4_msgs por uXRCE-DDS, e do outro lado nao ha PX4.
+  ozzy_bridge:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/ozzy_bridge.git
+    version: main
+    # A Pixhawk 2.4.8 e FMUv2/FMUv3 -- STM32F427, 1 MB de flash util (2 MB nas
+    # revisoes boas). O AP_DDS, que daria ROS 2 nativo no ArduPilot, nao cabe
+    # nessa build. Sobra MAVLink pela TELEM1, e a ponte e um ESP32 rodando
+    # micro-ROS de um lado e MAVLink do outro.
+    #
+    # O QUE ENTRA NO WORKSPACE E O QUE NAO ENTRA
+    #
+    # Este repositorio tem DUAS metades e so uma delas e pacote colcon:
+    #   ozzy_bridge/  pacote ROS 2 (link_monitor, teleop)  <- compilado aqui
+    #   firmware/     projeto PlatformIO do ESP32          <- ignorado pelo colcon
+    #
+    # O `firmware/` nao tem package.xml, entao o colcon nao o enxerga e o
+    # `vcs import` nao muda nada para quem nunca vai gravar a placa. Quem for
+    # gravar precisa do PlatformIO do INSTALADOR OFICIAL -- o `pip install
+    # platformio` nao cria o `~/.platformio/penv` que o micro_ros_platformio
+    # exige, e a falha so aparece minutos depois, sem mencionar pip.
+    #
+    # O firmware e compilado por distro (`pio run -e humble` / `-e jazzy`) e a
+    # distro TEM que casar com a da maquina que roda a maquina de estados.
+    # Cliente e workspace de distros diferentes conectam no agente, aparecem no
+    # `ros2 node list` e nao trocam mensagem nenhuma -- sem erro, sem aviso.
+    #
+    # ATENCAO AO QoS. /ozzy/pose, /ozzy/twist, /ozzy/battery e /ozzy/gps sao
+    # BEST_EFFORT. O default do rclpy e do rclcpp e RELIABLE, e um assinante
+    # RELIABLE nao recebe NADA de um publicador BEST_EFFORT -- o topico aparece
+    # no `ros2 topic list`, o `ros2 topic info` mostra o publicador, e o `echo`
+    # fica mudo. Verificado em Humble. Veja docs/CONTRATO.md do repositorio.
+    #
+    # Nao usa o MicroXRCEAgent como dependencia nova: e o MESMO binario da
+    # imagem do devcontainer, na mesma porta 8888.
+
+  # ---------- Layer 2: perception ----------
+  camera_publisher:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/camera_publisher.git
+    version: main
+  cv_nodes:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/cv_nodes.git
+    version: main
+    # A v0.3.0 so desenhava a anotacao quando havia mao, e um quadro limpo e
+    # ambiguo entre "nao vejo mao" e "nao chegou quadro nenhum". A v0.3.1
+    # mostra contador de quadros, "SEM MAO" em vermelho, e o centroide ligado a
+    # mira do centro -- o ponto que os PIDs perseguem.
+    #
+    # A v0.3.0 acrescentou o gesture_detector
+    # Reconhecimento de gestos por MediaPipe sobre a classe Detector. O
+    # gesture_classifier de 2025 fica no repositorio antigo: o modelo de 8 MB
+    # nao era instalado (so funcionava com --symlink-install), o indice da lista
+    # de gestos nao identificava a mao, e a posicao da mao so saia com
+    # Open_Palm, ou seja, parava exatamente durante o controle.
+    #
+    # A v0.2.1 deu modulo Python unico ao base_detector
+    # A v0.2.0 nomeia o modulo interno do base_detector como `base_detector`,
+    # igual ao pacote. O console script e inequivoco, mas o import dentro dele
+    # resolve pelo PYTHONPATH, e o itajuba_cv_utils -- que NAO esta neste
+    # manifesto, mas esta no src/ das maquinas do time -- expoe um modulo de
+    # topo com o mesmo nome e vence. O `ros2 run base_detector base_detector`
+    # subia OUTRO detector, sem erro nenhum, e a fase 1 varria a arena inteira
+    # sem ver base nenhuma.
+    #
+    # A v0.1.2 traz o base_detector como esqueleto quebrado: um script solto
+    # que lia base.png do disco, sem no ROS, sem dependencias declaradas e com
+    # o entry point apontando para um main() inexistente. Compilava.
+    #
+    # A v0.1.1 nao funciona com o OpenCV 4.11.0.86 pinado na imagem do
+    # devcontainer: usa aruco.DetectorParameters_create e
+    # aruco.detectMarkers, funcoes livres que nao existem nessa versao.
+
+  vision_geometry:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/vision_geometry.git
+    version: main
+    # A v0.1.0 aceita qualquer resultado do PnP. Uma base saindo do quadro
+    # encolhe na imagem, e o PnP le isso como distancia maior: medido em SITL,
+    # uma caixa de 63 px produziu um alvo a 6,6 m e dez metros ABAIXO do solo.
+    # A missao perseguia esse fantasma para fora da arena, sem erro nenhum.
+    #
+    # Projecao pixel -> mundo, header-only e SEM ROS: so OpenCV e Eigen. Em
+    # 2025 esta matematica vivia dentro do no ROS de cada fase (493 linhas
+    # replicadas em quatro), o que a tornava impossivel de testar sem subir
+    # simulacao e julgar a olho. Erro de sinal em referencial nao parece
+    # errado a olho: parece controle mal sintonizado.
+
+  # ---------- Layer 4: behavior ----------
+  fsm:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/fsm.git
+    version: main
+    # Na v0.1.0, act/on_enter/on_exit sao privados com `friend class FSM`: so a
+    # FSM pode executar um estado, e nenhum outro executor pode existir. O stdbt
+    # precisa executar os mesmos estados como acoes de Behavior Tree.
+    #
+    # As derivadas costumam declarar act e on_enter como publicas ao
+    # sobrescrever, entao um adaptador as alcancava -- mas NENHUM dos treze
+    # estados do stdstates sobrescreve on_exit, e ali o nome resolvia para a
+    # base privada. O adaptador compilava para uns estados e nao para outros.
+  stdstates:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/stdstates.git
+    version: main
+    # YawSweepState varre um setor em guinada usando a diferenca NORMALIZADA em
+    # relacao ao centro; a versao de 2025 usava limites absolutos e girava sem
+    # parar quando o setor cruzava a descontinuidade em pi.
+    #
+    # LandAndDisarmState pousa e desarma sem bloquear o executor, ao contrario
+    # do land() + disarmSync() que 2025 fazia dentro de um on_exit.
+    #
+    # PrecisionLandingState passa a MEDIR a altura de partida em vez de le-la do
+    # YAML. align_height deixa de ser lido -- a fase 1 pode remove-lo do config,
+    # e vale revalida-la, porque o pouso passa a partir da altitude real.
+    #
+    # A v0.2.1 fez o TakeoffState nao reancorar o referencial na redecolagem
+    # Na v0.2.0 o TakeoffState chama setHomePosition sempre, movendo a origem do
+    # mundo para a posicao atual. Toda missao que pousa e redecola perde as
+    # coordenadas ja guardadas -- bases visitadas, grade, casa -- sem erro
+    # nenhum, e volta a pousar na mesma base. A v0.2.1 poe isso atras de uma
+    # flag cujo padrao preserva o comportamento antigo.
+    #
+    # A v0.2.0 acrescentou WaypointList, PrecisionAlign, PrecisionLanding e
+    # ReturnHome. A v0.1.1 corrigiu a chave rosdep do Eigen (Eigen3 -> eigen) e
+    # continua valida para quem so precisa de arming/takeoff/goto.
+
+  stdbt:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/stdbt.git
+    version: main
+    # Contrapartida do stdstates para Behavior Trees. Um adaptador de sessenta
+    # linhas expoe qualquer fsm::State como acao de BT, para que uma fase possa
+    # escolher o motor sem que os onze estados validados em voo sejam
+    # duplicados.
+    #
+    # So os estados de RESULTADO UNICO viram no. Os de multiplos outcomes viram
+    # ESTRUTURA de arvore -- uma condicao e uma acao num Fallback --, porque
+    # envolve-los inteiros daria um no que devolve SUCCESS nos dois casos e a
+    # arvore perderia a informacao que importa.
+
+  # ---------- Layer 4: geometria pura e simulação ----------
+  #
+  # Duas bibliotecas sem ROS, testáveis em milissegundos, e um simulador. É o
+  # padrão que a `vision_geometry` estabeleceu: a geometria sai do nó, vira
+  # função, e passa a ser verificável contra números conferíveis à mão.
+  maze_geometry:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/maze_geometry.git
+    version: main
+    # A CHECAGEM QUE FALTAVA, e que nenhuma navegacao substitui. Medido no
+    # model.sdf: um x500 tem 0.772 m de envergadura -- braco de 0.246 m mais
+    # meia-helice de 0.140 m -- e NAO passa por uma janela de 0.60 m. Faltam
+    # 8.6 cm de cada lado.
+    #
+    # Ficou invisivel porque o simulador modelava o drone como um circulo de
+    # raio 0.20 m, metade do real, e a bateria dava 100% com muita confianca
+    # para um drone que nao existe.
+    #
+    # Agora o mapa declara `drone: {envergadura, folga_minima}` e o `carregar`
+    # recusa a planta na carga, com o numero que falta na mensagem.
+    #
+    # A v0.1.0 trouxe a planta como grafo e o ajuste de scan da fase 4.
+    # A fase 4 DEPENDE deste pacote em tempo de compilação. Sem ele no
+    # manifesto, um clone limpo do workspace não constrói a fase.
+    #
+    # `casa.hpp` lê o MESMO YAML que o `sim2d` lê. Se a missão tivesse a própria
+    # cópia das dimensões, ela poderia navegar uma casa e o simulador desenhar
+    # outra -- e o sintoma seria "funciona no simulador e bate na arena", sem
+    # nada apontando para a causa. A convenção de offset das janelas é travada
+    # por teste contra valores calculados pelo `sim2d/mapa.py`.
+    #
+    # `scan_fit.hpp` deixa duas limitações EXPLÍCITAS na interface, em vez de
+    # escondidas: a ambiguidade de 90 graus de um cômodo retangular (que nenhum
+    # algoritmo resolve, porque a informação não está no scan) e a inutilidade
+    # do ajuste dentro do vão de uma janela.
+
+  # slam_bridge: FORA DO MANIFESTO, de proposito, ate a Onda 4.
+  #
+  # O package.xml dele declara `<depend>Eigen3</depend>` -- o nome do pacote
+  # CMake, e nao a chave do rosdep, que e `eigen`. E exatamente o defeito que
+  # este time ja corrigiu no stdstates v0.1.1.
+  #
+  # O estrago nao fica nele. O `rosdep install` para na PRIMEIRA chave que nao
+  # resolve, entao NENHUMA dependencia de apt e instalada, e o CI de todo
+  # repositorio que constroi contra este manifesto passa a falhar com um erro
+  # de CMake noutro pacote -- medido: `Could NOT find ZeroMQ` no
+  # behaviortree_cpp, que nao tem relacao nenhuma com Eigen.
+  #
+  # Ele nao e usado por ninguem ainda: entra na Onda 4, junto com o adaptador
+  # de /pose para /slam/odometry, e ate la o package.xml pode ser corrigido no
+  # repositorio de origem.
+  #
+  #   type: git
+  #   url: https://github.com/Equipe-eVTOL-ITA/slam_bridge.git
+  #   version: 0946ce327c7c9aa067a93dde65b75b5c85aabab6
+
+  sim2d:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/sim2d.git
+    version: main
+    # A v0.2.0 gerava um mundo com so quatro plugins do Gazebo. Ele carregava, o
+    # `gz sdf -k` dizia "Valid" e o LIDAR publicava -- e o PX4 recusava armar com
+    # "Accel Sensor 0 missing", uma mensagem que nao menciona o mundo em lugar
+    # nenhum. Faltavam os sistemas de IMU, barometro, magnetometro e NavSat.
+    #
+    # A v0.2.2 tambem inverte o padrao de iluminacao: o mundo sai CLARO. A
+    # escuridao era fiel a prova e nao mudava um unico numero da simulacao -- o
+    # LIDAR nao se importa com luz e a fase nao tem camera --, mas impedia ver o
+    # drone voando, que e metade da razao de abrir o Gazebo.
+    # COLISAO POR DISTANCIA PONTO-SEGMENTO, e nao por 16 raios. Raio nao
+    # enxerga QUINA: o perpendicular a uma parede com vao passa direto pelo vao,
+    # e os vizinhos batem longe -- o batente nao era medido por nenhum deles.
+    #
+    # Medido: um drone de raio 0.32 atravessava uma janela de 0.60 m,
+    # interferindo 2 cm de cada lado, com 100% de sucesso. Dois centimetros
+    # parecem pouco; as folgas desta fase sao de dez, e e deste detector que sai
+    # o numero que decide se a fase e possivel.
+    #
+    # E `gerar_sdf`, que tira o mundo do Gazebo do MESMO mapa em vez de deixar
+    # alguem desenhar uma terceira copia da planta.
+    #
+    # A v0.1.1 fez o lote abortar se a missao for recompilada no meio.
+    # A v0.1.0 tinha um travessao duplo em comentario XML no package.xml -- que
+    # e ilegal. O colcon nao conseguia le-lo, REBAIXAVA o pacote de
+    # ros.ament_python para python puro, construia, instalava tudo no lugar
+    # certo e nao gerava os ganchos do ament: `ros2 run sim2d` respondia
+    # "Package not found" com o pacote inteiro visivel no disco. Nenhum CI de
+    # build pega isso, porque a construcao passa.
+    #
+    # E o lote da v0.1.0 mandava stdout e stderr para /dev/null, virando um
+    # oraculo quando falhava, e nao percebia recompilacao no meio da bateria --
+    # que invalida tudo o que vem depois e produziu a conclusao errada "a fase
+    # quebra a partir de 0.05 de deriva".
+    # Recebe trajectory_setpoint, publica vehicle_odometry, vehicle_status,
+    # timesync_status e um LaserScan por ray casting num mapa de paredes. O
+    # binário REAL da missão roda nele sem uma linha de alteração -- verificado
+    # subindo a classe `Drone` do drone_lib contra ele.
+    #
+    # A malha fecha na ESTIMATIVA, e não na verdade: comandar x=3.0 põe a
+    # estimativa do PX4 em 3.0, e o drone fica onde a estimativa estiver errada.
+    # Um simulador que levasse a verdade até o setpoint faria a deriva ser
+    # inofensiva -- validaria a lógica e esconderia o único risco que importa
+    # numa fase sem GPS.
+    #
+    # Não é dependência de compilação de ninguém: é ferramenta de verificação.
+
+  # ---------- Cross-cutting ----------
+  telemetry_handler:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/telemetry_handler.git
+    version: main
+
+  # ---------- Layer 5: competition ----------
+  sae2026:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/sae2026.git
+    version: main
+
+  cbr2026:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/cbr2026.git
+    version: main
+    # `cbr2026:fase4` nas tasks genericas, como a fase 1. A ponte gz->ROS do
+    # LIDAR mora dentro do simulation.launch.py da fase: e a unica coisa que ela
+    # tem a mais, e fica invisivel de fora.
+    #
+    # O mundo e GERADO a cada simulacao, so com o labirinto e o chao, e o drone
+    # e o `wanda` -- o x500 nao passa por janelas de 0.60 m.
+    #
+    # O simulate.sh RECUSA comecar com px4, gz ou agente vivos da tentativa
+    # anterior. O `gz sim` sobrevive quando o PX4 morre, e a chamada que pede o
+    # spawn vai parar no servidor velho; o erro que aparece fala de
+    # GZ_SIM_RESOURCE_PATH, que esta certo, e o drone simplesmente nao aparece.
+    #
+    # EXIGE o modelo wanda no PX4-gazebo-models, que o devcontainer monta em
+    # ~/PX4-gazebo-models.
+    #
+    # A v0.6.0 trouxe a fase 4 ao Gazebo pela primeira vez.
+    # O mundo do Gazebo e GERADO do mesmo YAML que a missao le, e a ponte
+    # gz->ROS do LIDAR passou a existir. Verificada de ponta a ponta: 502 dos
+    # 1080 raios com retorno dentro do labirinto.
+    #
+    # O LIDAR do x500_lidar_2d fica 12 cm A FRENTE do centro do drone, e o
+    # ajuste de scan devolvia essa posicao como se fosse a do drone -- erro
+    # sistematico maior que as folgas de 10 cm da fase. Medido no Gazebo; o
+    # sim2d nao pega, porque nele o sensor esta no centro por construcao.
+    #
+    # A geometria da fase e MEDIDA e nao suposta: janela de 0.60 m, paredes de
+    # 1.50 m, drone de ate 0.40 m. 0.50 m cabe geometricamente numa janela de
+    # 0.60 e mesmo assim nao passa -- a precisao da navegacao come a folga.
+    #
+    # A v0.5.0 trouxe a travessia do labirinto.
+    # DEPENDE do maze_geometry, e por isso ele precede esta entrada aqui.
+    #
+    # A missao atravessa os seis comodos no sim2d e termina com SUCCESS. Com
+    # deriva de odometria, 100% em todas as colunas ate 0.05 m por metro
+    # percorrido -- contra 0/3 da malha aberta a partir de 0.02, que e o piso
+    # medido com a mesma rota sem ler o LIDAR.
+    #
+    # A planta, a rota e o mundo do Gazebo saem todos de UM arquivo. Uma segunda
+    # copia daria o pior sintoma possivel: funciona no simulador, bate na arena,
+    # e cada arquivo esta certo sozinho.
+    #
+    # NADA no flight.yaml dela foi validado em voo, e o arquivo diz isso em
+    # maiusculas. As dimensoes do labirinto sao estimadas a partir das AREAS do
+    # edital -- toda folga citada depende delas.
+    #
+    # A v0.4.0 trouxe a fase 4 como esqueleto em Behavior Tree. Primeira fase
+    # modelada como arvore em vez de maquina de estados. As fases 1, 2 e 3
+    # seguem em FSM -- a escolha e por fase, pelo --engine do new_mission.sh.
+    #
+    # A v0.3.1 fez a fase 3 VOAR
+    # A v0.3.0 compila mas nao funciona: o config pedia
+    # <camera_name>/image/compressed e o webcam_publisher publica em
+    # <camera_name>_camera/compressed. O detector nunca recebia quadro, e o
+    # drone giraria para sempre procurando uma mao que ninguem enxergava --
+    # sem erro nenhum.
+    #
+    # A v0.3.0 acrescentou a fase 3, controle por gestos
+    # A fase 3 tem arranjo DISTRIBUIDO: a camera fica no drone e a imagem
+    # comprimida atravessa a rede ate o computador de solo, que roda o
+    # reconhecimento de gestos e a FSM. Dai os quatro launches -- simulacao,
+    # embarcado, solo e replay -- em vez dos dois da fase 1.
+    #
+    # A v0.2.0 e a fase 1 validada em voo
+    # A v0.1.0 compila mas nao voa: reancora o referencial do mundo a cada
+    # redecolagem e persegue a caixa mais central da imagem em vez da base
+    # escolhida pela busca. O drone pousa na mesma base repetidamente e depois
+    # vai e volta pela arena. Exige vision_geometry v0.1.1 e stdstates v0.2.1.
+    #
+    # Estava faltando neste manifesto embora ja fosse o repositorio de trabalho
+    # da CBR: quem montasse o workspace so a partir daqui nao teria a fase 1 no
+    # src/, e o `new_mission.sh` criaria fases num repositorio que o manifesto
+    # nao conhece.
+    #
+    # E o unico consumidor de vision_geometry + stdstates + cv_nodes ao mesmo
+    # tempo, entao o CI dele e o unico lugar onde um repin que quebre a missao
+    # aparece. O CI de cada biblioteca prova que ELA compila, nao que a missao
+    # continua compilando com ela.
+
+  ensaio_em_voo:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/ensaio_em_voo.git
+    version: main
+    # Ensaios de voo: manobras minimas que exercitam UMA capacidade do drone de
+    # cada vez -- teste_grid_quadrado a translacao, teste_yaw o cabeceio --
+    # para rodar antes de uma missao de competicao. Uma missao falha por muitos
+    # motivos ao mesmo tempo e no meio da prova nao da para saber qual.
+    #
+    # Fica na camada 5 junto com as competicoes, e nao na 3 com o stdstates,
+    # porque e um CONSUMIDOR folha: usa tudo abaixo e ninguem o usa. A
+    # diferenca para uma competicao e so o calendario.
+    #
+    # Estava fora deste manifesto embora ja estivesse no src/ das maquinas do
+    # time -- e o repositorio no GitHub existia VAZIO, com o remote configurado
+    # e nenhum commit. Quem montasse o workspace so a partir daqui nao teria
+    # com que checar o drone antes de voar a missao.

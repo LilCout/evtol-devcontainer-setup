@@ -18,16 +18,6 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ros-humble-desktop ros-dev-tools sudo \
     && rm -rf /var/lib/apt/lists/* /tmp/ros2-apt-source.deb
 
-# GitHub CLI, for opening pull requests (scripts/git_push.sh) and applying the
-# branch policy (scripts/proteger.sh). The .deb from the release, pinned.
-ARG GH_VERSION=2.102.0
-RUN curl -fsSL -o /tmp/gh.deb \
-        "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_$(dpkg --print-architecture).deb" \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends /tmp/gh.deb \
-    && rm -rf /var/lib/apt/lists/* /tmp/gh.deb \
-    && gh --version
-
 RUN rosdep init \
     && su user -c 'rosdep update --rosdistro humble'
 
@@ -103,9 +93,7 @@ RUN mkdir -p /tmp/deps/src \
     && rm -rf /tmp/deps
 ENV EVTOL_UNDERLAY=/opt/evtol_deps
 
-# The folders behind the named volumes in devcontainer.json are created here and
-# owned by `user`; a new volume copies that ownership, so `user` can write to it.
+# The cache folders (named volumes in devcontainer.json) are created here and owned by `user`.
 RUN ln -s /opt/PX4-Autopilot /home/user/PX4-Autopilot \
     && mkdir -p /home/user/.ccache /home/user/.gz/fuel /home/user/.ros \
-        /home/user/evtol/mission_logs /home/user/.claude \
     && chown -R user:user /home/user

@@ -1,0 +1,6 @@
+This is a project that tries to implement Docker containers to the eVTOL dev workspace, featuring ROS 2 Humble, PX4 1.15, Micro XRCE DDS Agent and Gazebo Garden.
+It is based on the evtol-dev GitHub repo (https://github.com/Equipe-eVTOL-ITA/evtol-dev), but tries to get rid of a lot of the health checks and test that Dev Containers make pointless. The objetive is to simplify the infraestructure as much as possible, but maintaining the functionality of the development workspace itself.
+https://github.com/LilCout/evtol-devcontainer-setup features the Dockerfile and other files I used to build the image. This project is using Linux with an NVIDIA card as an example, by the general intent is to be able to use the Dev Container on Windows and other graphics cards, too, through the files in the evtol-devcontainer-setup repo.
+The evtol-devcontainer-setup repo mentions evtol-dev patches, but this project is built from the ground up. Just the scripts folder, the tasks.json file, evtol.repos and .gitignore were copied from evtol-dev, with many changes to fulfill my objective.
+Here's the link to the chat I've been having with Claude on the browser: https://claude.ai/share/2a8013b9-2f57-470f-aa31-c804fe5ee4f6.
+Also, try to avoid long comments.

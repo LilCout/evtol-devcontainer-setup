@@ -1,0 +1,74 @@
+// Windows (WSL 2) template: cp container/windows/devcontainer.json .devcontainer/ and uncomment your GPU option.
+{
+  "name": "evtol-devcontainer",
+  "build": { "dockerfile": "../container/Dockerfile", "context": "../container" },
+  // Or use a prebuilt image instead of "build":
+  // "image": "ghcr.io/<user>/evtol-devcontainer@sha256:<digest>",
+
+  "runArgs": [
+    /// [GPU] WSL's GPU device
+    // "--device=/dev/dxg",
+
+    "--network=host"
+  ],
+
+  "mounts": [
+    /// WSLg's X server
+    "type=bind,source=/mnt/wslg/.X11-unix,target=/tmp/.X11-unix,readonly",
+
+    /// [GPU] WSL's GPU driver libraries
+    // "type=bind,source=/usr/lib/wsl,target=/usr/lib/wsl,readonly",
+
+    /// The team's models/worlds repo, cloned next to this workspace
+    "type=bind,source=${localWorkspaceFolder}/../PX4-gazebo-models,target=/home/user/PX4-gazebo-models",
+
+    /// Caches and data that survive rebuilds
+    "type=volume,source=evtol-ccache,target=/home/user/.ccache",
+    "type=volume,source=evtol-gz-fuel,target=/home/user/.gz/fuel",
+    "type=volume,source=evtol-ros-home,target=/home/user/.ros",
+    "type=volume,source=evtol-mission-logs,target=/home/user/evtol/mission_logs",
+    "type=volume,source=evtol-claude,target=/home/user/.claude"
+  ],
+
+  "containerEnv": {
+    "DISPLAY": ":0",
+
+    /// [GPU] Mesa's d3d12 driver; with several GPUs pick "NVIDIA", "Intel" or "AMD"
+    // "LD_LIBRARY_PATH": "/usr/lib/wsl/lib",
+    // "MESA_D3D12_DEFAULT_ADAPTER_NAME": "NVIDIA",
+
+    /// [No GPU] Software rendering
+    // "LIBGL_ALWAYS_SOFTWARE": "1",
+
+    "CCACHE_DIR": "/home/user/.ccache",
+    "CCACHE_MAXSIZE": "10G",
+    "QT_QPA_PLATFORM": "xcb",
+    "CLAUDE_CONFIG_DIR": "/home/user/.claude"
+  },
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": { "version": "2.102.0" },
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Ranch-Hand-Robotics.rde-ros-2",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-python.python",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "timonwong.shellcheck"
+      ]
+    }
+  },
+
+  /// New volumes are mounted as root; hand them to `user`
+  "postCreateCommand": "sudo chown \"$(id -u):$(id -g)\" ~/evtol/mission_logs ~/.claude; (sudo apt-get update || echo \"apt-get update failed; run it before rosdep install\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached data\")",
+
+  "containerUser": "user",
+  "remoteUser": "user",
+  "updateRemoteUserUID": true
+}

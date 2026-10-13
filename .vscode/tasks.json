@@ -1,0 +1,494 @@
+// =============================================================================
+// Tasks do workspace eVTOL ITA
+// =============================================================================
+//
+// Ctrl+Shift+P -> "Tasks: Run Task", ou Ctrl+Shift+B para compilar.
+//
+// As tasks sao agrupadas por prefixo, entao a lista aparece ordenada:
+//     build ...        compilar (pacote, all, deps, changed)
+//     missão: criar    gera uma missao nova a partir do template
+//     sim: ...         simulacao no Gazebo
+//     sim2d: ...       simulador 2D, sem Gazebo
+//     voo: ...         coisas de voo real
+//     git: ...         commitar e pushar um repo
+//
+// O BLOCO "inputs" NO FIM DESTE ARQUIVO E GERADO. Nao edite a mao:
+//
+//     python3 scripts/sync_tasks.py
+//
+// O VS Code so aceita lista fixa nos campos de entrada, e lista escrita a mao
+// envelhece -- a versao anterior oferecia so `sae2026` e `mission_1`, entao
+// quem criasse a cbr2026 com a fase1 nao a encontrava aqui. O sincronizador
+// deriva as listas do que existe em src/: competicoes (quem tem
+// scripts/simulate.sh), mundos (o bloco `case` de cada simulate.sh) e pacotes
+// (colcon list). O new_mission.sh o chama sozinho.
+//
+// O resto do arquivo (as tasks) e escrito a mao e preservado pelo script.
+// =============================================================================
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "detail": "Compila um pacote, ou all / deps / changed — Ctrl+Shift+B",
+            "type": "shell",
+            // O alvo e o NOME DO PACOTE, sem prefixo de competicao.
+            "command": "bash scripts/build.sh '${input:alvoBuild}'",
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": "$gcc",
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "build: pacote (digitado)",
+            "detail": "Compila o(s) pacote(s) que você digitar — aceita vários",
+            "type": "shell",
+            // A lista suspensa so conhece o que existia na ultima sincronizacao.
+            "command": "bash scripts/build.sh ${input:pacotesDigitados}",
+            "group": "build",
+            "problemMatcher": "$gcc",
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "build: só este pacote (sem dependências)",
+            "detail": "--packages-select: recompila só ele, para o ciclo curto",
+            "type": "shell",
+            // --packages-up-to (o padrao) reconstroi a cadeia inteira.
+            "command": "bash scripts/build.sh --select '${input:alvoBuild}'",
+            "group": "build",
+            "problemMatcher": "$gcc",
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "missão: criar",
+            "detail": "Gera um pacote de missão que já compila e voa (templates/new_mission.sh)",
+            "type": "shell",
+            // O gerador exige rodar de dentro de src/<competicao>, e ja
+            // atualiza estas listas no fim -- a missao nova aparece nas tasks.
+            "command": "cd 'src/${input:competicao}' && bash ../../templates/new_mission.sh '${input:nomeMissao}' --engine '${input:motorMissao}'",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+
+        {
+            "label": "sim: iniciar",
+            "detail": "PX4 + Gazebo, agente DDS e ponte de imagem, de uma vez",
+            "dependsOn": [ "sim: PX4 + Gazebo", "sim: agente DDS", "sim: ponte de imagem" ],
+            "problemMatcher": []
+        },
+        {
+            "label": "sim: iniciar com missão",
+            "detail": "O mesmo que 'sim: iniciar', e já sobe a missão junto",
+            // Sem "dependsOrder": "sequence": o VS Code espera cada task
+            // TERMINAR, e PX4, Gazebo e agente nao terminam.
+            "dependsOn": [
+                "sim: PX4 + Gazebo",
+                "sim: agente DDS",
+                "sim: ponte de imagem",
+                "sim: rodar missão"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "sim: PX4 + Gazebo",
+            "detail": "Sobe o PX4 SITL com o mundo escolhido",
+            "type": "shell",
+            // "competicao:mundo": uma escolha so diz as duas coisas, e nao
+            // existe combinacao invalida.
+            "command": "M='${input:mundo}'; bash \"src/${M%%:*}/scripts/simulate.sh\" \"${M#*:}\"",
+            "problemMatcher": [],
+            "presentation": {
+                // Sem "group": com ele o VS Code junta tudo num terminal
+                // dividido e nao da para ler nenhum. "dedicated" faz a task
+                // reusar sempre a mesma aba.
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "sim: agente DDS",
+            "detail": "Micro XRCE-DDS Agent — a ponte entre o PX4 e o ROS 2",
+            "type": "shell",
+            // NAO pergunta o mundo, e esse e o ponto: o VS Code resolve os
+            // inputs POR TASK, e duas tasks do mesmo dependsOn citando
+            // ${input:mundo} perguntavam o mundo duas vezes.
+            "command": "bash scripts/agent.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "sim: ponte de imagem",
+            "detail": "ros_gz_image — câmeras do Gazebo → tópicos ROS 2",
+            "type": "shell",
+            "command": "bash scripts/image_bridge.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "sim: rodar missão",
+            "detail": "ros2 launch <pacote> simulation.launch.py",
+            "type": "shell",
+            // A opcao vem como "competicao:missao"; o ros2 launch so precisa do
+            // nome do pacote, entao descartamos a parte antes do ":".
+            "command": "P='${input:pacoteMissao}'; source scripts/ros_env.sh && ros2 launch \"${P#*:}\" simulation.launch.py",
+            "problemMatcher": [],
+            "presentation": {
+                "panel": "dedicated",
+                "clear": true,
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "sim: parar tudo",
+            "detail": "Encerra a simulação INTEIRA — e confere que encerrou",
+            "type": "shell",
+            // Antes eram tres pkill de um total muito maior, e a rodada
+            // seguinte subia por cima do que sobrava. O script manda SIGINT
+            // antes de SIGKILL e sai com erro se algo sobreviver.
+            "command": "bash scripts/parar.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "panel": "dedicated",
+                "reveal": "always",
+                "showReuseMessage": false
+            }
+        },
+
+        {
+            "label": "sim: matar o Gazebo",
+            "detail": "Encerra só o Gazebo — o PX4 e o agente ficam de pé",
+            "type": "shell",
+            // O Gazebo e o que trava com mais frequencia, e derrubar a
+            // simulacao inteira so por causa dele custa a subida toda de novo.
+            //
+            // ATENCAO: o PX4 SITL depende do Gazebo. Sem ele o PX4 continua
+            // vivo mas cego -- nao ha mais fisica nem sensor. Serve para
+            // desentalar o Gazebo antes de parar o resto, nao para trocar o
+            // Gazebo por baixo de um PX4 que continua voando.
+            "command": "bash scripts/parar.sh --so gazebo",
+            "problemMatcher": [],
+            "presentation": {
+                "panel": "dedicated",
+                "reveal": "always",
+                "showReuseMessage": false
+            }
+        },
+
+        {
+            "label": "sim2d: rodar uma fase",
+            "detail": "Simulador 2D + missão, sem Gazebo — segundos em vez de minutos",
+            "type": "shell",
+            // UMA task: eram duas, e as duas citavam ${input:pacoteMissao},
+            // entao o VS Code perguntava a fase duas vezes.
+            "command": "P='${input:pacoteMissao}'; bash scripts/sim2d.sh \"${P#*:}\" --com-missao",
+            "problemMatcher": [],
+            "presentation": {
+                "panel": "dedicated", "clear": true, "showReuseMessage": false
+            }
+        },
+        
+        {
+            "label": "tasks: sincronizar",
+            "detail": "Atualiza as listas destas tasks a partir do que existe em src/",
+            "type": "shell",
+            "command": "python3 scripts/sync_tasks.py",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+
+        {
+            "label": "voo: pré-voo",
+            "detail": "Com a missão no ar: confere o sistema RODANDO antes de armar",
+            "type": "shell",
+            // Pega o caso em que codigo e documentacao concordam e A MAQUINA
+            // faz outra coisa. Nenhuma dessas falhas imprime erro.
+            "command": "P='${input:pacoteMissao}'; bash scripts/preflight.sh \"${P#*:}\"",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "contratos: atualizar",
+            "detail": "Regenera o docs/CONTRATOS.md a partir do código",
+            "type": "shell",
+            "command": "python3 scripts/contratos.py",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "voo: QGroundControl",
+            "detail": "Abre o QGC — procura o AppImage onde quer que ele esteja",
+            "type": "shell",
+            // Sem caminho fixo: o AppImage nao entra no repositorio. Para
+            // fixar, exporte EVTOL_QGC.
+            "command": "bash scripts/qgc.sh",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "reveal": "silent" }
+        },
+        {
+            "label": "voo: ground station",
+            "detail": "Sobe a estação de solo de uma missão",
+            "type": "shell",
+            // pacoteGround, e nao pacoteMissao: e derivado de quem TEM o
+            // launch de solo, entao a escolha errada deixa de existir.
+            "command": "bash scripts/ground_station.sh '${input:pacoteGround}'",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "voo: fechar garra",
+            "detail": "Aciona o servo da garra (GPIO da Jetson)",
+            "type": "shell",
+            "command": "bash scripts/fechar_garra.sh",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "git: publicar",
+            "detail": "Do arquivo editado ao PR que se mergeia sozinho quando o CI passa",
+            "type": "shell",
+            // A ordem dos inputs e a ordem em que o VS Code pergunta: repo,
+            // mensagem, e so entao o CI. A pergunta do CI vem por ultimo de
+            // proposito -- e a unica com consequencia fora da sua maquina.
+            //
+            // O script faz o caminho inteiro: cria o branch se voce estiver na
+            // main, commita, empurra, abre o PR e liga o auto-merge. Nao ha
+            // mais tag nem repin depois -- o evtol.repos acompanha a main.
+            "command": "bash scripts/git_push.sh '${input:repoGit}' '${input:msgCommit}' '${input:ciDoPush}'",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "git: atualizar tudo",
+            "detail": "Puxa a main de todos os repositórios do workspace",
+            "type": "shell",
+            // Com o manifesto acompanhando a `main`, receber o trabalho dos
+            // outros deixou de exigir `vcs import` (que trocava o que estava
+            // checado out): e um pull em cada repositorio.
+            "command": "git pull --ff-only && vcs pull src",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        },
+        {
+            "label": "voo: congelar",
+            "detail": "Gera voo.repos com a revisão exata de cada repo — rode antes de competir",
+            "type": "shell",
+            // A reprodutibilidade do workspace mora aqui. O evtol.repos
+            // responde "o que o time desenvolve agora"; o voo.repos responde
+            // "o que exatamente voou naquele dia". Ver scripts/congelar.sh.
+            "command": "bash scripts/congelar.sh",
+            "problemMatcher": [],
+            "presentation": { "panel": "dedicated", "clear": true }
+        }
+    ],
+
+    "inputs": [
+        {
+            "id": "mundo",
+            "description": "Mundo do Gazebo (competição:mundo)",
+            "type": "pickString",
+            "options": [
+                "cbr2026:default",
+                "cbr2026:fase1",
+                "cbr2026:fase4",
+                "cm204-evtol:casa1",
+                "ensaio_em_voo:default",
+                "sae2026:default",
+                "sae2026:sae1",
+                "sae2026:sae2",
+                "sae2026:sae3"
+            ],
+            "default": "sae2026:sae1"
+        },
+        {
+            "id": "alvoBuild",
+            "description": "O que compilar (pacote, ou all/deps/changed)",
+            "type": "pickString",
+            "options": [
+                "all",
+                "deps",
+                "changed",
+                "RDPformas",
+                "audio_alert",
+                "ball_detector",
+                "base_detector",
+                "base_detector_itjbx2026",
+                "bouncing_detector",
+                "camera_calibrator",
+                "camera_publisher",
+                "circle_detector",
+                "custom_msgs",
+                "detector",
+                "drone_lib",
+                "fase1",
+                "fase3",
+                "fase4",
+                "fsm",
+                "fsm_demo",
+                "geofig_detector",
+                "gesture_detector",
+                "lane_detector",
+                "mangueira_detector",
+                "manometro_detector",
+                "maze_geometry",
+                "mission_1",
+                "mission_1_H",
+                "mission_2",
+                "mission_3",
+                "mission_teste",
+                "number_detector",
+                "ozzy_bridge",
+                "qrcode_detector",
+                "red_line_detector",
+                "sim2d",
+                "stdbt",
+                "stdstates",
+                "telemetry_handler",
+                "teste_grid_quadrado",
+                "teste_yaw",
+                "vision_geometry",
+                "window_detector",
+                "behaviortree_cpp",
+                "cbr2025_fase4",
+                "example_global_navigation_cpp",
+                "example_local_navigation_cpp",
+                "example_mode_fw_attitude_cpp",
+                "example_mode_goto_cpp",
+                "example_mode_goto_global_cpp",
+                "example_mode_manual_cpp",
+                "example_mode_rtl_replacement_cpp",
+                "example_mode_with_executor_cpp",
+                "itajuba_cv_utils",
+                "itajuba_drone_lib",
+                "itajuba_fase1",
+                "itajuba_fase2",
+                "itajuba_fase3",
+                "itajuba_fase4",
+                "itajuba_telemetry_handler",
+                "px4_msgs",
+                "px4_ros2_cpp",
+                "sae_cv_utils",
+                "sae_drone_lib",
+                "sae_fase1",
+                "sae_fase2",
+                "sae_fase3"
+            ],
+            "default": "changed"
+        },
+        {
+            "id": "pacoteMissao",
+            "description": "Missão (competição:missão)",
+            "type": "pickString",
+            "options": [
+                "cbr2026:fase1",
+                "cbr2026:fase3",
+                "cbr2026:fase4",
+                "ensaio_em_voo:teste_grid_quadrado",
+                "ensaio_em_voo:teste_yaw",
+                "sae2026:mission_1",
+                "sae2026:mission_1_H",
+                "sae2026:mission_2",
+                "sae2026:mission_3",
+                "sae2026:mission_teste"
+            ],
+            "default": "sae2026:mission_1"
+        },
+        {
+            "id": "pacoteGround",
+            "description": "Estação de solo (pacote)",
+            "type": "pickString",
+            "options": [
+                "fase1",
+                "fase3"
+            ],
+            "default": "fase3"
+        },
+        {
+            "id": "pacotesDigitados",
+            "description": "Pacote(s) a compilar, separados por espaço",
+            "type": "promptString",
+            "default": ""
+        },
+        {
+            "id": "competicao",
+            "description": "Competição da nova missão",
+            "type": "pickString",
+            "options": [
+                "cbr2026",
+                "cm204-evtol",
+                "ensaio_em_voo",
+                "sae2026"
+            ],
+            "default": "sae2026"
+        },
+        {
+            "id": "nomeMissao",
+            "description": "Nome do pacote da missão (minúsculas, dígitos e _; ex.: fase1)",
+            "type": "promptString",
+            "default": ""
+        },
+        {
+            "id": "motorMissao",
+            "description": "Como a missão é modelada",
+            "type": "pickString",
+            "options": [
+                "fsm",
+                "bt"
+            ],
+            "default": "fsm"
+        },
+        {
+            "id": "repoGit",
+            "description": "Qual repositório commitar e pushar",
+            "type": "pickString",
+            "options": [
+                "evtol-dev",
+                "behaviortree_cpp",
+                "camera_publisher",
+                "cbr2026",
+                "cm204-evtol",
+                "custom_msgs",
+                "cv_nodes",
+                "drone_lib",
+                "ensaio_em_voo",
+                "fsm",
+                "itajuba",
+                "maze_geometry",
+                "ozzy_bridge",
+                "px4_msgs",
+                "px4_ros2_interface",
+                "sae2026",
+                "sae_2025",
+                "sim2d",
+                "stdbt",
+                "stdstates",
+                "telemetry_handler",
+                "vision_geometry"
+            ],
+            "default": "evtol-dev"
+        },
+        {
+            "id": "msgCommit",
+            "description": "Mensagem (Conventional Commits em português: tipo: o que mudou, minúsculo, sem acento)",
+            "type": "promptString",
+            "default": ""
+        },
+        {
+            "id": "ciDoPush",
+            "description": "Rodar o CI neste push? ('sem CI' marca o commit com [skip ci])",
+            "type": "pickString",
+            "options": [
+                "com CI",
+                "sem CI"
+            ],
+            "default": "com CI"
+        }
+    ]
+}

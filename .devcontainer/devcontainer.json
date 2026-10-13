@@ -1,14 +1,13 @@
 {
   "name": "evtol-devcontainer",
-  "build": { "dockerfile": "Dockerfile" },
-  // "image": "ghcr.io/your-github-username/evtol-dev@sha256:…",
+  "image": "ghcr.io/lilcout/evtol-devcontainer@sha256:20f830dd2330431c152bb1d5dae899a2a52ea29b0e6a05a2bcd5cba49e7fc474",
 
   /// [Linux] Writes an X cookie for Gazebo's window to $XDG_RUNTIME_DIR.
-  // "initializeCommand": "bash .devcontainer/xauth.sh",
+  "initializeCommand": "bash .devcontainer/xauth.sh",
 
   "runArgs": [
     /// [Linux - NVIDIA GPU rendering] GPU through CDI (Podman and Docker 25+ with the NVIDIA toolkit)
-    // "--device=nvidia.com/gpu=all",
+    "--device=nvidia.com/gpu=all",
 
     /// [Linux - Intel/AMD GPU rendering]
     /// The user needs the groups that own
@@ -30,8 +29,8 @@
 
   "mounts": [
     /// [Linux] X server socket and the cookie written by xauth.sh
-    // "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
-    // "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/px4-devcontainer.xauth,target=/tmp/px4.xauth,readonly",
+    "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
+    "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/px4-devcontainer.xauth,target=/tmp/px4.xauth,readonly",
 
     /// [Windows]: WSLg's X server and WSL's GPU driver libraries (LD_LIBRARY_PATH)
     // "type=bind,source=/mnt/wslg/.X11-unix,target=/tmp/.X11-unix,readonly",
@@ -57,8 +56,8 @@
 
   "containerEnv": {
     /// [Linux] Display cookie
-    // "DISPLAY": "${localEnv:DISPLAY}",
-    // "XAUTHORITY": "/tmp/px4.xauth",
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "XAUTHORITY": "/tmp/px4.xauth",
 
     /// [Windows]
     // "DISPLAY": ":0",
@@ -69,9 +68,9 @@
     // "MESA_D3D12_DEFAULT_ADAPTER_NAME": "NVIDIA",
 
     /// [Linux - NVIDIA GPU rendering] PRIME offload on hybrid laptops
-    // "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,display",
-    // "__NV_PRIME_RENDER_OFFLOAD": "1",
-    // "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
+    "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,display",
+    "__NV_PRIME_RENDER_OFFLOAD": "1",
+    "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
 
     /// Software rendering (disable GPU acceleration)
     // "LIBGL_ALWAYS_SOFTWARE": "1",
@@ -103,7 +102,7 @@
         "ms-vscode.cpptools-extension-pack",   // C/C++ IntelliSense, debugger, CMake Tools
         "ms-python.python",                    // Python, Pylance, debugger
         "redhat.vscode-xml",                   // package.xml, launch XML, SDF worlds/models, Behavior Tree XML
-        "redhat.vscode-yaml",                  // ROS params, mission YAML, env profiles
+        "redhat.vscode-yaml",                  // ROS params, mission YAML
         "timonwong.shellcheck"                 // lint for the bash scripts
       ]
     }

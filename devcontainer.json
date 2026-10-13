@@ -5,7 +5,8 @@
 //   [Linux]      any Linux host (X11 or Wayland with XWayland)
 //   [Windows]    Windows 11 + WSL2 + WSLg: clone the workspace inside your WSL
 //                Ubuntu, open it from there ("WSL: Open Folder in WSL"), then
-//                "Reopen in Container"
+//                "Reopen in Container". GPU through WSL (any vendor); for no
+//                GPU, use the [No GPU] lines instead of the Windows GPU ones
 //   [No GPU]     VMs or machines without a usable GPU: software rendering
 // Every list below ends with a line all setups share, so commenting lines in
 // or out never leaves a stray comma.
@@ -31,7 +32,13 @@
     // "--group-add=keep-groups",               // rootless Podman
     // "--group-add=109", "--group-add=44",     // Docker (your ids)
 
-    // [Windows] [No GPU] No GPU line at all.
+    // [Windows] Instead of the NVIDIA line: WSL's GPU device. Mesa's d3d12
+    // driver renders OpenGL through DirectX 12 on the Windows driver, so this
+    // works for NVIDIA, AMD and Intel alike. Check with: glxinfo -B | grep -i renderer
+    // (it should say "D3D12 (<your GPU>)"; "llvmpipe" means software rendering).
+    // "--device=/dev/dxg",
+
+    // [No GPU] No GPU line at all.
 
     // [All] SELinux hosts (Fedora and friends) block the X socket otherwise;
     // ignored where there is no SELinux.
@@ -47,8 +54,11 @@
     "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
     "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/px4-devcontainer.xauth,target=/tmp/px4.xauth,readonly",
 
-    // [Windows] Instead of the two [Linux] lines: WSLg's X server
+    // [Windows] Instead of the two [Linux] lines: WSLg's X server, and WSL's GPU
+    // driver libraries (the image registers /usr/lib/wsl/lib with the library
+    // loader, as WSL's own Ubuntu does; postStartCommand refreshes it)
     // "type=bind,source=/mnt/wslg/.X11-unix,target=/tmp/.X11-unix,readonly",
+    // "type=bind,source=/usr/lib/wsl,target=/usr/lib/wsl,readonly",
 
     // [All] The team's models/worlds repo, cloned next to this workspace (see README)
     "type=bind,source=${localWorkspaceFolder}/../PX4-gazebo-models,target=/home/user/PX4-gazebo-models",
@@ -69,13 +79,16 @@
 
     // [Windows] Instead of the two [Linux] lines:
     // "DISPLAY": ":0",
+    // [Windows] Hybrid laptops: which GPU Mesa uses, by a word of its name as
+    // Windows shows it ("NVIDIA", "AMD", "Intel"). Remove with a single GPU.
+    // "MESA_D3D12_DEFAULT_ADAPTER_NAME": "NVIDIA",
 
     // [NVIDIA] Render Gazebo on the NVIDIA GPU (PRIME offload on hybrid laptops)
     "NVIDIA_DRIVER_CAPABILITIES": "compute,utility,graphics,display",
     "__NV_PRIME_RENDER_OFFLOAD": "1",
     "__GLX_VENDOR_LIBRARY_NAME": "nvidia",
 
-    // [Windows] [No GPU] Software rendering (also delete the GPU runArgs)
+    // [No GPU] Software rendering (also delete the GPU runArgs)
     // "LIBGL_ALWAYS_SOFTWARE": "1",
 
     // [All] ccache: the base image already routes gcc/g++ through it
@@ -102,6 +115,11 @@
   // them to stay small) and a fresh rosdep cache. Each step only warns when it
   // fails (e.g. offline), so creating the container never fails because of them.
   "postCreateCommand": "(sudo apt-get update || echo \"apt-get update failed; package lists are empty, so rosdep install will fail until you run: sudo apt-get update\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached rosdep data\")",
+
+  // Every start: refresh the library loader's cache, so it sees WSL's GPU
+  // libraries in /usr/lib/wsl/lib when they are mounted ([Windows]). Harmless
+  // everywhere else: the folder doesn't exist there.
+  "postStartCommand": "sudo ldconfig",
 
   // Run as the image's non-root `user`. On Linux the Dev Containers CLI gives it
   // your uid/gid, so files created in the workspace are yours (Docker); with

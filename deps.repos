@@ -1,0 +1,18 @@
+# Third-party ROS 2 packages prebuilt into the image as an underlay
+# (/opt/evtol_deps). This is the ONLY place their versions are pinned: they
+# were removed from the workspace's evtol.repos (upstream-patches/
+# evtol-dev-underlay.patch). To change a version, edit it here and rebuild the
+# image. px4_msgs must match the PX4 firmware (PX4_REF in the Dockerfile).
+repositories:
+  behaviortree_cpp:
+    type: git
+    url: https://github.com/BehaviorTree/BehaviorTree.CPP.git
+    version: "4.9.1"
+  px4_msgs:
+    type: git
+    url: https://github.com/PX4/px4_msgs.git
+    version: v1.15.4
+  px4_ros2_interface:
+    type: git
+    url: https://github.com/Auterion/px4-ros2-interface-lib.git
+    version: 1.3.0

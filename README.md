@@ -76,6 +76,9 @@ QGroundControl on your computer, not in the container.
 | `ros-humble-ros-gzgarden-*`, `ros-humble-desktop`, vision_msgs, cv_bridge | installed from apt |
 | numpy, opencv-contrib-python, mediapipe, setuptools, packaging | installed with pip, system-wide |
 | `behaviortree_cpp`, `px4_msgs`, `px4_ros2_interface` | prebuilt underlay in `/opt/evtol_deps` |
+| `gh` (GitHub CLI, v2.102.0) | installed from the release `.deb` |
+| `~/evtol/mission_logs` (rosbags recorded by mission launches) | named volume `evtol-mission-logs` |
+| Claude Code | Dev Container feature, installed when the container is created; state in volume `evtol-claude` |
 | `src/`, `build/`, `install/` | in the workspace folder, so they survive rebuilds |
 
 ## Prebuilt third-party packages (underlay)
@@ -106,11 +109,15 @@ built and takes precedence over the image's.
   onboard computer must run the same version as the simulation. For v3.0.1,
   build with `--build-arg XRCE_AGENT_VERSION=v3.0.1` (in `devcontainer.json`:
   `"build": { "dockerfile": "Dockerfile", "args": { "XRCE_AGENT_VERSION": "v3.0.1" } }`).
-- Three named volumes keep caches across image rebuilds: `evtol-ccache`
+- Named volumes keep caches across image rebuilds: `evtol-ccache`
   (`~/.ccache`, compiled objects), `evtol-gz-fuel` (`~/.gz/fuel`, Gazebo Fuel
   downloads) and `evtol-ros-home` (`~/.ros`, ROS logs and rosdep data).
   `rosdep update` also runs on container creation, so the volume never serves
-  an old rosdep cache. Check usage with `ccache -s`; start over with
+  an old rosdep cache. Two more volumes hold data rather than caches:
+  `evtol-mission-logs` (`~/evtol/mission_logs`, the rosbag of every mission
+  run) and `evtol-claude` (`~/.claude`, Claude Code's login and settings, via
+  `CLAUDE_CONFIG_DIR`). Copy a log out with
+  `podman cp <container>:/home/user/evtol/mission_logs/<run> .`. Check usage with `ccache -s`; start over with
   `podman volume rm evtol-ccache` (container stopped).
 - Worlds linked by `simulate.sh` go into the image's PX4 tree and are re-linked
   automatically after a container rebuild.
@@ -120,7 +127,7 @@ built and takes precedence over the image's.
   Podman (for Podman the CLI adds `--userns=keep-id` itself; that needs Dev
   Containers CLI 0.76 or newer, and VS Code set to `podman` rather than a
   `docker` → podman alias). If you used an earlier root version of this
-  container with Docker, delete the three cache volumes once, since they
+  container with Docker, delete the cache volumes once, since they
   belong to root.
 - `/opt/PX4-Autopilot` is writable by everyone, because your uid is only known
   when the container is created and SITL writes its logs and parameters there.

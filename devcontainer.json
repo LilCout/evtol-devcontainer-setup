@@ -46,7 +46,13 @@
     ///   ~/.ros: ROS logs and the rosdep cache (refreshed by postCreateCommand)
     "type=volume,source=evtol-ccache,target=/home/user/.ccache",
     "type=volume,source=evtol-gz-fuel,target=/home/user/.gz/fuel",
-    "type=volume,source=evtol-ros-home,target=/home/user/.ros"
+    "type=volume,source=evtol-ros-home,target=/home/user/.ros",
+
+    /// Data that must survive container rebuilds:
+    ///   mission logs: the rosbag each mission launch records
+    ///   Claude Code: login, settings and history (see CLAUDE_CONFIG_DIR)
+    "type=volume,source=evtol-mission-logs,target=/home/user/evtol/mission_logs",
+    "type=volume,source=evtol-claude,target=/home/user/.claude"
   ],
 
   "containerEnv": {
@@ -75,7 +81,17 @@
     "CCACHE_MAXSIZE": "10G",
 
     /// Qt (Gazebo's GUI) through X11/XWayland
-    "QT_QPA_PLATFORM": "xcb"
+    "QT_QPA_PLATFORM": "xcb",
+
+    /// Claude Code keeps all its state in the evtol-claude volume
+    "CLAUDE_CONFIG_DIR": "/home/user/.claude"
+  },
+
+  /// Installed when the container is created, on top of the image.
+  /// Claude Code is installed with npm, which the Node.js feature provides.
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
   },
 
   /// VS Code extensions in the container

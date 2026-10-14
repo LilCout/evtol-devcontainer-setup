@@ -1,5 +1,9 @@
 # evtol-devcontainer-setup
 
+> [!WARNING]
+> This project was made with Claude Code and is experimental.
+> Expect issues. Any help is appreciated.
+
 The eVTOL ITA ROS 2 workspace in a Dev Container: Ubuntu 22.04, ROS 2 Humble
 Desktop, Gazebo Garden with its ROS bridge, PX4 v1.15.4 SITL prebuilt, Micro
 XRCE-DDS Agent v2.4.3, the pinned pip packages and the third-party ROS packages

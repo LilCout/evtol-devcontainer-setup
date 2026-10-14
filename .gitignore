@@ -1,18 +1,21 @@
-# Este repositório é a raiz do workspace colcon.
+# A raiz do workspace colcon é dev/.
 
 # Repositórios do workspace, trazidos por `vcs import src < evtol.repos`
-/src/
+/dev/src/
 
 # Modelos e mundos do Gazebo, trazidos pelo sim.repos
 /PX4-gazebo-models/
+
+# Rosbags e saídas das missões (~/evtol/mission_logs aponta para cá)
+/mission_logs/
 
 # Configuração local do Dev Container, copiada de container/{linux,windows}/
 /.devcontainer/
 
 # Saídas do colcon
-/build/
-/install/
-/log/
+/dev/build/
+/dev/install/
+/dev/log/
 
 # Python
 __pycache__/
@@ -24,14 +27,14 @@ __pycache__/
 .DS_Store
 
 # Configuração local do Claude Code
-.claude/settings.local.json
+**/.claude/settings.local.json
 
 # VS Code: pessoal, exceto as tasks, que são do time
-.vscode/*
-!.vscode/tasks.json
+/dev/.vscode/*
+!/dev/.vscode/tasks.json
 
 # Clones de competições antigas, para consulta (o COLCON_IGNORE é versionado)
-referencia/*/
+/dev/referencia/*/
 
 # Manifesto congelado por scripts/congelar.sh
 voo.repos

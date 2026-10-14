@@ -3,7 +3,7 @@
 # setup.sh — prepara o workspace pela primeira vez, dentro do container.
 # =============================================================================
 #
-#   ./scripts/setup.sh              clona o evtol.repos e o sim.repos, instala as dependências
+#   ./scripts/setup.sh              clona o evtol.repos e o ../sim.repos, instala as dependências
 #                                   e compila tudo
 #   ./scripts/setup.sh --sem-build  só clona e instala as dependências
 #
@@ -31,7 +31,7 @@ mkdir -p src
 vcs import --skip-existing src < evtol.repos
 
 echo "==> Clonando os modelos do Gazebo (sim.repos)"
-vcs import --skip-existing . < sim.repos
+vcs import --skip-existing .. < ../sim.repos
 
 # O postCreateCommand roda o apt-get update, mas pode ter falhado sem rede.
 if ! compgen -G "/var/lib/apt/lists/*_Packages*" > /dev/null; then

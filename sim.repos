@@ -1,8 +1,8 @@
-# Modelos e mundos do Gazebo da equipe. Fica fora de src/, e o build.sh só
-# compila src/: o sdf_parsing/ tem um CMakeLists.txt que não é pacote.
-# Acompanha a `main`, como o evtol.repos.
+# Modelos e mundos do Gazebo da equipe, ao lado de dev/: fora do workspace
+# colcon, que acharia o CMakeLists.txt do sdf_parsing/. Acompanha a `main`,
+# como o evtol.repos.
 #
-# Uso (da raiz do workspace):
+# Uso (da raiz do repositório):
 #   vcs import . < sim.repos
 
 repositories:

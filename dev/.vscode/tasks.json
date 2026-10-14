@@ -254,7 +254,7 @@
             // Com o manifesto acompanhando a `main`, receber o trabalho dos
             // outros deixou de exigir `vcs import` (que trocava o que estava
             // checado out): e um pull em cada repositorio.
-            "command": "git pull --ff-only && vcs import --skip-existing . < sim.repos && vcs pull src PX4-gazebo-models",
+            "command": "git pull --ff-only && vcs import --skip-existing .. < ../sim.repos && vcs pull src ../PX4-gazebo-models",
             "problemMatcher": [],
             "presentation": { "panel": "dedicated", "clear": true }
         },

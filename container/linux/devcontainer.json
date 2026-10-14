@@ -25,6 +25,10 @@
     "--shm-size=1g"
   ],
 
+  /// VS Code opens dev/; the models and logs sit next to it
+  "workspaceMount": "type=bind,source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename}",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}/dev",
+
   "mounts": [
     /// X server socket and the cookie written by xauth.sh
     "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
@@ -34,7 +38,6 @@
     "type=volume,source=evtol-ccache,target=/home/user/.ccache",
     "type=volume,source=evtol-gz-fuel,target=/home/user/.gz/fuel",
     "type=volume,source=evtol-ros-home,target=/home/user/.ros",
-    "type=volume,source=evtol-mission-logs,target=/home/user/evtol/mission_logs",
     "type=volume,source=evtol-claude,target=/home/user/.claude"
   ],
 
@@ -56,7 +59,7 @@
     "CLAUDE_CONFIG_DIR": "/home/user/.claude",
 
     /// The team's models/worlds repo, cloned by scripts/setup.sh
-    "PX4_GZ_MODELS": "${containerWorkspaceFolder}/PX4-gazebo-models"
+    "PX4_GZ_MODELS": "/workspaces/${localWorkspaceFolderBasename}/PX4-gazebo-models"
   },
 
   "features": {
@@ -67,6 +70,8 @@
 
   "customizations": {
     "vscode": {
+      /// The repo's root is the parent of dev/
+      "settings": { "git.openRepositoryInParentFolders": "always" },
       "extensions": [
         "Ranch-Hand-Robotics.rde-ros-2",
         "ms-vscode.cpptools-extension-pack",
@@ -79,8 +84,8 @@
   },
 
   /// The image has no folder for the Claude Code volume, so it is mounted as root.
-  /// The link keeps scripts that use ~/PX4-gazebo-models working.
-  "postCreateCommand": "sudo chown \"$(id -u):$(id -g)\" ~/.claude; ln -sfn \"$PX4_GZ_MODELS\" ~/PX4-gazebo-models; (sudo apt-get update || echo \"apt-get update failed; run it before rosdep install\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached data\")",
+  /// The links give evtol-dev's paths; the image has ~/evtol/mission_logs as an empty folder.
+  "postCreateCommand": "sudo chown \"$(id -u):$(id -g)\" ~/.claude; ln -sfn \"$PX4_GZ_MODELS\" ~/PX4-gazebo-models; mkdir -p ../mission_logs && rmdir ~/evtol/mission_logs && ln -s \"/workspaces/${localWorkspaceFolderBasename}/mission_logs\" ~/evtol/mission_logs; ln -sfn \"/workspaces/${localWorkspaceFolderBasename}/dev\" ~/evtol/dev; (sudo apt-get update || echo \"apt-get update failed; run it before rosdep install\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached data\")",
 
   "containerUser": "user",
   "remoteUser": "user",

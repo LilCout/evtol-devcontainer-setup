@@ -38,10 +38,10 @@ if [[ -z "$repo" || -z "$mensagem" ]]; then
   exit 2
 fi
 
-# O evtol-dev e a raiz do workspace e os modelos ficam nela; o resto mora em src/.
+# O evtol-dev e o repositorio do workspace; os modelos ficam ao lado de dev/.
 case "$repo" in
   evtol-dev)         dir="$RAIZ" ;;
-  PX4-gazebo-models) dir="$RAIZ/PX4-gazebo-models" ;;
+  PX4-gazebo-models) dir="$RAIZ/../PX4-gazebo-models" ;;
   *)                 dir="$RAIZ/src/$repo" ;;
 esac
 

@@ -127,10 +127,10 @@ def repos_git() -> list[str]:
 
     Derivado do que existe, e nao do manifesto: quem acabou de clonar um repo
     novo a mao precisa comita-lo tanto quanto os pinados. O `evtol-dev` vem
-    primeiro por ser a raiz; o PX4-gazebo-models tambem mora fora de src/.
+    primeiro por ser a raiz; o PX4-gazebo-models fica ao lado de dev/.
     """
     raiz = ["evtol-dev"]
-    if (WS_ROOT / "PX4-gazebo-models" / ".git").exists():
+    if (WS_ROOT.parent / "PX4-gazebo-models" / ".git").exists():
         raiz.append("PX4-gazebo-models")
     if not SRC.is_dir():
         return raiz

@@ -7,7 +7,9 @@
 The eVTOL ITA ROS 2 workspace in a Dev Container: Ubuntu 22.04, ROS 2 Humble
 Desktop, Gazebo Garden with its ROS bridge, PX4 v1.15.4 SITL prebuilt, Micro
 XRCE-DDS Agent v2.4.3, the pinned pip packages and the third-party ROS packages
-prebuilt as an underlay. It is based on
+prebuilt as an underlay. The image is published as
+[`ghcr.io/lilcout/evtol-devcontainer`](https://github.com/users/LilCout/packages/container/package/evtol-devcontainer),
+so you don't need to build it. It is based on
 [evtol-dev](https://github.com/Equipe-eVTOL-ITA/evtol-dev), but the image
 replaces its environment profiles and health checks: everyone runs the same image.
 
@@ -21,9 +23,10 @@ evtol/                  ← this repo; open it in VS Code on your computer
 └── mission_logs/       ← rosbags and mission outputs, at ~/evtol/mission_logs
 ```
 
-`container/image/` is the image's build context (`Dockerfile`, `deps.repos`);
 `container/linux/` and `container/windows/` hold the `devcontainer.json`
-templates, which run `container/xauth.sh` on Linux.
+templates, which pull the published image and run `container/xauth.sh` on Linux.
+`container/image/` is the image's build context (`Dockerfile`, `deps.repos`),
+for building it yourself.
 
 ## Setup
 
@@ -54,8 +57,10 @@ not under `/mnt/c`: writing rosbags there is slow. Open it from WSL
 
 In `.devcontainer/devcontainer.json`, uncomment the lines tagged with your GPU
 (`[NVIDIA]`, `[Intel/AMD]`, `[GPU]` on Windows, or `[No GPU]`). Then open
-`evtol` and run **Reopen in Container**. To skip building the image, set
-`"image"` to a prebuilt one instead of `"build"`.
+`evtol` and run **Reopen in Container**. The first time, it pulls the image
+`ghcr.io/lilcout/evtol-devcontainer:humble-px4-1.15.4`, pinned by digest in
+`"image"`. To build it from `container/image/` instead, replace `"image"` with
+the commented `"build"` line.
 
 If VS Code fails to open the container the first time, run **Developer: Reload
 Window** and try again before choosing **Rebuild Container**, which recreates
@@ -108,11 +113,11 @@ Named volumes survive container rebuilds: `evtol-ccache` (`~/.ccache`),
   Workspace** to edit models, and edit the root files (`README.md`,
   `container/`) on your computer. The Source Control panel also shows this repo
   (via `git.openRepositoryInParentFolders`), next to the `src/` repos.
-- To change an underlay package, edit `container/image/deps.repos` and rebuild
-  the image. `px4_msgs` must match `PX4_REF` in the `Dockerfile`. A copy cloned
+- To change an underlay package, edit `container/image/deps.repos` and switch
+  to `"build"`. `px4_msgs` must match `PX4_REF` in the `Dockerfile`. A copy cloned
   into `src/` takes precedence over the image's.
-- The team's flying machines use XRCE-DDS Agent v3.0.1. To match them, build with
-  `"args": { "XRCE_AGENT_VERSION": "v3.0.1" }` in `"build"`.
+- The team's flying machines use XRCE-DDS Agent v3.0.1. To match them, switch
+  to `"build"` and add `"args": { "XRCE_AGENT_VERSION": "v3.0.1" }` to it.
 - The container runs as the non-root `user` with passwordless `sudo`. On Linux
   it gets your uid/gid, so workspace files stay yours. With rootless Podman this
   needs Dev Containers CLI 0.76+ and VS Code set to `podman`, not a `docker`

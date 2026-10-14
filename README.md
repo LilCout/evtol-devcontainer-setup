@@ -7,8 +7,9 @@ prebuilt as an underlay. It is based on
 [evtol-dev](https://github.com/Equipe-eVTOL-ITA/evtol-dev), but the image
 replaces its environment profiles and health checks: everyone runs the same image.
 
-This repo is the workspace root. `container/` holds the image (`Dockerfile`,
-`deps.repos`) and the `devcontainer.json` templates.
+This repo is the workspace root. `container/image/` is the image's build context
+(`Dockerfile`, `deps.repos`); `container/linux/` and `container/windows/` hold the
+`devcontainer.json` templates, which run `container/xauth.sh` on Linux.
 
 ## Setup
 
@@ -49,7 +50,7 @@ Run QGroundControl on your computer, not in the container.
 |---|---|
 | PX4 v1.15.4, built | `/opt/PX4-Autopilot`, linked at `~/PX4-Autopilot` |
 | `MicroXRCEAgent` v2.4.3 | `/usr/local/bin` |
-| BehaviorTree.CPP, px4_msgs, px4-ros2-interface-lib | underlay in `/opt/evtol_deps`, pinned in `container/deps.repos` |
+| BehaviorTree.CPP, px4_msgs, px4-ros2-interface-lib | underlay in `/opt/evtol_deps`, pinned in `container/image/deps.repos` |
 | `gh`, Node.js, Claude Code | Dev Container features, installed when the container is created |
 | `src/`, `build/`, `install/` | the workspace folder, so they survive rebuilds |
 
@@ -60,8 +61,8 @@ Named volumes survive container rebuilds: `evtol-ccache` (`~/.ccache`),
 
 ## Notes
 
-- To change an underlay package, edit `container/deps.repos` and rebuild the
-  image. `px4_msgs` must match `PX4_REF` in the `Dockerfile`. A copy cloned
+- To change an underlay package, edit `container/image/deps.repos` and rebuild
+  the image. `px4_msgs` must match `PX4_REF` in the `Dockerfile`. A copy cloned
   into `src/` takes precedence over the image's.
 - The team's flying machines use XRCE-DDS Agent v3.0.1. To match them, build with
   `"args": { "XRCE_AGENT_VERSION": "v3.0.1" }` in `"build"`.

@@ -223,30 +223,12 @@
             "presentation": { "panel": "dedicated", "clear": true }
         },
         {
-            "label": "voo: QGroundControl",
-            "detail": "Abre o QGC — procura o AppImage onde quer que ele esteja",
-            "type": "shell",
-            // Sem caminho fixo: o AppImage nao entra no repositorio. Para
-            // fixar, exporte EVTOL_QGC.
-            "command": "bash scripts/qgc.sh",
-            "problemMatcher": [],
-            "presentation": { "panel": "dedicated", "reveal": "silent" }
-        },
-        {
             "label": "voo: ground station",
             "detail": "Sobe a estação de solo de uma missão",
             "type": "shell",
             // pacoteGround, e nao pacoteMissao: e derivado de quem TEM o
             // launch de solo, entao a escolha errada deixa de existir.
             "command": "bash scripts/ground_station.sh '${input:pacoteGround}'",
-            "problemMatcher": [],
-            "presentation": { "panel": "dedicated", "clear": true }
-        },
-        {
-            "label": "voo: fechar garra",
-            "detail": "Aciona o servo da garra (GPIO da Jetson)",
-            "type": "shell",
-            "command": "bash scripts/fechar_garra.sh",
             "problemMatcher": [],
             "presentation": { "panel": "dedicated", "clear": true }
         },

@@ -1,10 +1,6 @@
-# Este repositório É a raiz do workspace colcon (~/evtol/dev).
-# Tudo abaixo é gerado ou trazido por ferramenta — nada disso é versionado aqui.
+# Este repositório é a raiz do workspace colcon.
 
-# Repositórios do workspace. São trazidos por `vcs import` a partir do
-# evtol.repos, cada um na versão pinada. Eles têm os próprios repositórios;
-# commitar o conteúdo deles aqui recriaria a duplicação que o modelo de
-# repos em camadas veio eliminar.
+# Repositórios do workspace, trazidos por `vcs import src < evtol.repos`
 /src/
 
 # Configuração local do Dev Container, copiada de container/{linux,windows}/
@@ -18,47 +14,21 @@
 # Python
 __pycache__/
 *.py[cod]
+.venv/
 
 # Editor / sistema
 *.swp
 .DS_Store
 
-# Configuração local do Claude Code (por máquina, não da equipe).
+# Configuração local do Claude Code
 .claude/settings.local.json
 
-# VS Code: pessoal por padrão, EXCETO as tasks.
-#
-# O .vscode/ acumula arquivos que são de fato de cada um — settings.json,
-# launch.json, c_cpp_properties.json costumam ter caminhos absolutos da
-# máquina. Esses ficam de fora.
-#
-# O tasks.json é a exceção: ele é a interface do time com o workspace
-# (simular, buildar, subir o agente, lançar missão) e é versionado de
-# propósito, aqui na raiz, que é onde o VS Code lê. Antes ele vivia no repo
-# meta e era copiado com `cp -r` para a raiz — a cópia derivava, e acabar com
-# isso foi metade do motivo da reorganização. Se ele voltar a ser ignorado, a
-# derivação volta junto.
+# VS Code: pessoal, exceto as tasks, que são do time
 .vscode/*
 !.vscode/tasks.json
 
-# Ambiente Python local. Os pacotes do time ja vem na imagem do devcontainer.
-.venv/
-
-# Repositorios de competicoes antigas, guardados para consulta.
-#
-# Sao clones proprios (o referencia/cbr_2025 tem o seu .git apontando para
-# Equipe-eVTOL-ITA/cbr_2025). Um deles entrou no indice como gitlink -- modo
-# 160000 -- sem nenhum .gitmodules correspondente, e todo checkout de CI
-# terminava com
-#
-#     fatal: No url found for submodule path 'referencia/cbr_2025'
-#
-# Alem de contrariar a Golden Rule 2 (nunca usar submodulos). O COLCON_IGNORE
-# ao lado continua versionado: ele e que impede o colcon de compilar o que
-# esta aqui dentro.
+# Clones de competições antigas, para consulta (o COLCON_IGNORE é versionado)
 referencia/*/
 
-# Manifesto congelado, gerado por scripts/congelar.sh no momento do voo. Um
-# congelamento que merece ficar registrado ganha nome proprio e e commitado:
-# cbr2026-final.repos.
+# Manifesto congelado por scripts/congelar.sh
 voo.repos

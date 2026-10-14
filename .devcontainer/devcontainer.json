@@ -1,9 +1,9 @@
 {
   "name": "evtol-devcontainer",
-  "image": "ghcr.io/lilcout/evtol-devcontainer@sha256:20f830dd2330431c152bb1d5dae899a2a52ea29b0e6a05a2bcd5cba49e7fc474",
+  "image": "ghcr.io/lilcout/evtol-devcontainer@sha256:05a8898f2e6ad0e0b9a17434df058d53e7b8b58735f1a3bf811cc9b3f6d06513",
 
   /// [Linux] Writes an X cookie for Gazebo's window to $XDG_RUNTIME_DIR.
-  "initializeCommand": "bash .devcontainer/xauth.sh",
+  "initializeCommand": "bash container/xauth.sh",
 
   "runArgs": [
     /// [Linux - NVIDIA GPU rendering] GPU through CDI (Podman and Docker 25+ with the NVIDIA toolkit)
@@ -24,7 +24,10 @@
     "--security-opt=label=disable",
 
     /// Host network
-    "--network=host"
+    "--network=host",
+
+    /// Shared memory for Fast DDS and Gazebo (the default is 64 MB)
+    "--shm-size=1g"
   ],
 
   "mounts": [
@@ -90,8 +93,8 @@
   /// Claude Code is installed with npm, which the Node.js feature provides.
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": { "version": "2.102.0" },
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+    "ghcr.io/devcontainers/features/node:1": { "version": "24.21.0" },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}
   },
 
   /// VS Code extensions in the container

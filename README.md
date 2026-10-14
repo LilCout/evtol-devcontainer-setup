@@ -53,6 +53,10 @@ In `.devcontainer/devcontainer.json`, uncomment the lines tagged with your GPU
 `evtol` and run **Reopen in Container**. To skip building the image, set
 `"image"` to a prebuilt one instead of `"build"`.
 
+If VS Code fails to open the container the first time, run **Developer: Reload
+Window** and try again before choosing **Rebuild Container**, which recreates
+the container and reinstalls its features.
+
 Inside the container, VS Code opens `dev/`. From there:
 
 ```bash
@@ -98,7 +102,8 @@ Named volumes survive container rebuilds: `evtol-ccache` (`~/.ccache`),
 - The container's VS Code shows only `dev/`, so it doesn't watch or search the
   models and logs. Open `../PX4-gazebo-models` with **File > Add Folder to
   Workspace** to edit models, and edit the root files (`README.md`,
-  `container/`) on your computer.
+  `container/`) on your computer. The Source Control panel also shows this repo
+  (via `git.openRepositoryInParentFolders`), next to the `src/` repos.
 - To change an underlay package, edit `container/image/deps.repos` and rebuild
   the image. `px4_msgs` must match `PX4_REF` in the `Dockerfile`. A copy cloned
   into `src/` takes precedence over the image's.

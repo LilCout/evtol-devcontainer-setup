@@ -38,12 +38,12 @@ if [[ -z "$repo" || -z "$mensagem" ]]; then
   exit 2
 fi
 
-# O evtol-dev e a raiz do workspace; todo o resto mora em src/.
-if [[ "$repo" == "evtol-dev" ]]; then
-  dir="$RAIZ"
-else
-  dir="$RAIZ/src/$repo"
-fi
+# O evtol-dev e a raiz do workspace e os modelos ficam nela; o resto mora em src/.
+case "$repo" in
+  evtol-dev)         dir="$RAIZ" ;;
+  PX4-gazebo-models) dir="$RAIZ/PX4-gazebo-models" ;;
+  *)                 dir="$RAIZ/src/$repo" ;;
+esac
 
 if [[ ! -d "$dir/.git" ]]; then
   echo "ERRO: '$repo' nao e um repositorio git ($dir)." >&2

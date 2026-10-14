@@ -67,7 +67,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-COMMON=(--symlink-install --executor sequential
+# Só src/: o PX4-gazebo-models, na raiz, tem um CMakeLists.txt que não é pacote.
+COMMON=(--base-paths src --symlink-install --executor sequential
         --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On"
         "${extra[@]+"${extra[@]}"}")
 
@@ -147,9 +148,9 @@ if (( rodar_teste )); then
     echo
     echo "Rodando os testes..."
     if [[ "$modo" == "all" ]]; then
-        colcon test --executor sequential
+        colcon test --base-paths src --executor sequential
     else
-        colcon test --executor sequential --packages-select "${alvos[@]}"
+        colcon test --base-paths src --executor sequential --packages-select "${alvos[@]}"
     fi
     colcon test-result --verbose
 fi

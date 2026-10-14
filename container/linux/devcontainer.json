@@ -30,9 +30,6 @@
     "type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix,readonly",
     "type=bind,source=${localEnv:XDG_RUNTIME_DIR}/px4-devcontainer.xauth,target=/tmp/px4.xauth,readonly",
 
-    /// The team's models/worlds repo, cloned next to this workspace
-    "type=bind,source=${localWorkspaceFolder}/../PX4-gazebo-models,target=/home/user/PX4-gazebo-models",
-
     /// Caches and data that survive rebuilds
     "type=volume,source=evtol-ccache,target=/home/user/.ccache",
     "type=volume,source=evtol-gz-fuel,target=/home/user/.gz/fuel",
@@ -56,7 +53,10 @@
     "CCACHE_DIR": "/home/user/.ccache",
     "CCACHE_MAXSIZE": "10G",
     "QT_QPA_PLATFORM": "xcb",
-    "CLAUDE_CONFIG_DIR": "/home/user/.claude"
+    "CLAUDE_CONFIG_DIR": "/home/user/.claude",
+
+    /// The team's models/worlds repo, cloned by scripts/setup.sh
+    "PX4_GZ_MODELS": "${containerWorkspaceFolder}/PX4-gazebo-models"
   },
 
   "features": {
@@ -78,8 +78,9 @@
     }
   },
 
-  /// The image has no folder for the Claude Code volume, so it is mounted as root
-  "postCreateCommand": "sudo chown \"$(id -u):$(id -g)\" ~/.claude; (sudo apt-get update || echo \"apt-get update failed; run it before rosdep install\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached data\")",
+  /// The image has no folder for the Claude Code volume, so it is mounted as root.
+  /// The link keeps scripts that use ~/PX4-gazebo-models working.
+  "postCreateCommand": "sudo chown \"$(id -u):$(id -g)\" ~/.claude; ln -sfn \"$PX4_GZ_MODELS\" ~/PX4-gazebo-models; (sudo apt-get update || echo \"apt-get update failed; run it before rosdep install\"); (rosdep update --rosdistro humble || echo \"rosdep update failed; using the cached data\")",
 
   "containerUser": "user",
   "remoteUser": "user",

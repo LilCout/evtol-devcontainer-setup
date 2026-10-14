@@ -3,6 +3,9 @@
 # Repositórios do workspace, trazidos por `vcs import src < evtol.repos`
 /src/
 
+# Modelos e mundos do Gazebo, trazidos pelo sim.repos
+/PX4-gazebo-models/
+
 # Configuração local do Dev Container, copiada de container/{linux,windows}/
 /.devcontainer/
 

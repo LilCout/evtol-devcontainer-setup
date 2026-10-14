@@ -13,33 +13,32 @@ This repo is the workspace root. `container/image/` is the image's build context
 
 ## Setup
 
-```
-~/evtol/
-├── dev/                  ← this repo; open this folder in VS Code
-└── PX4-gazebo-models/    ← the team's models repo (mounted at ~/PX4-gazebo-models)
-```
-
 ```bash
-mkdir -p ~/evtol && cd ~/evtol
-git clone https://github.com/LilCout/evtol-devcontainer-setup.git dev
-git clone https://github.com/Equipe-eVTOL-ITA/PX4-gazebo-models.git   # must exist before the container starts
-git -C PX4-gazebo-models checkout 492352b                             # has the `wanda` model
-mkdir -p dev/.devcontainer
-cp dev/container/linux/devcontainer.json dev/.devcontainer/           # or container/windows/ (WSL 2 + WSLg)
+git clone https://github.com/LilCout/evtol-devcontainer-setup.git evtol
+mkdir -p evtol/.devcontainer
+cp evtol/container/linux/devcontainer.json evtol/.devcontainer/   # or container/windows/ (WSL 2 + WSLg)
 ```
 
 In `.devcontainer/devcontainer.json`, uncomment the lines tagged with your GPU
 (`[NVIDIA]`, `[Intel/AMD]`, `[GPU]` on Windows, or `[No GPU]`). Then open
-`~/evtol/dev` and run **Reopen in Container**. To skip building the image, set
+`evtol` and run **Reopen in Container**. To skip building the image, set
 `"image"` to a prebuilt one instead of `"build"`.
 
 Inside the container, from the workspace root:
 
 ```bash
-vcs import src < evtol.repos
-rosdep install --from-paths src --ignore-src -y
-./scripts/build.sh all
+./scripts/setup.sh    # vcs import, rosdep install, then ./scripts/build.sh all
 ```
+
+`setup.sh` also clones the team's Gazebo models and worlds into
+`PX4-gazebo-models/`, tracking `main` as listed in `sim.repos`. `$PX4_GZ_MODELS` points
+there, and `~/PX4-gazebo-models` links to it for scripts that still use that path.
+
+`--sem-build` skips the build. It is safe to run again: repos already in `src/`
+are left as they are.
+
+The scripts and tasks load ROS on their own. In a terminal where you run `ros2`
+by hand, first run `source scripts/ros_env.sh` (ROS, the underlay and `install/`).
 
 The VS Code tasks (`.vscode/tasks.json`) cover simulation, builds and flight.
 Run QGroundControl on your computer, not in the container.
@@ -52,7 +51,7 @@ Run QGroundControl on your computer, not in the container.
 | `MicroXRCEAgent` v2.4.3 | `/usr/local/bin` |
 | BehaviorTree.CPP, px4_msgs, px4-ros2-interface-lib | underlay in `/opt/evtol_deps`, pinned in `container/image/deps.repos` |
 | `gh`, Node.js, Claude Code | Dev Container features, installed when the container is created |
-| `src/`, `build/`, `install/` | the workspace folder, so they survive rebuilds |
+| `src/`, `build/`, `install/`, `PX4-gazebo-models/` | the workspace folder, so they survive rebuilds |
 
 Named volumes survive container rebuilds: `evtol-ccache` (`~/.ccache`),
 `evtol-gz-fuel` (Gazebo Fuel downloads), `evtol-ros-home` (`~/.ros`),

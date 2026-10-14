@@ -1,0 +1,12 @@
+# Modelos e mundos do Gazebo da equipe. Fica fora de src/, e o build.sh só
+# compila src/: o sdf_parsing/ tem um CMakeLists.txt que não é pacote.
+# Acompanha a `main`, como o evtol.repos.
+#
+# Uso (da raiz do workspace):
+#   vcs import . < sim.repos
+
+repositories:
+  PX4-gazebo-models:
+    type: git
+    url: https://github.com/Equipe-eVTOL-ITA/PX4-gazebo-models.git
+    version: main

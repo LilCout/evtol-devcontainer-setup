@@ -1,9 +1,10 @@
 // Windows (WSL 2) template: cp container/windows/devcontainer.json .devcontainer/ and uncomment your GPU option.
 {
   "name": "evtol-devcontainer",
-  "build": { "dockerfile": "../container/image/Dockerfile", "context": "../container/image" },
-  // Or use a prebuilt image instead of "build":
-  // "image": "ghcr.io/<user>/evtol-devcontainer@sha256:<digest>",
+  /// ghcr.io/lilcout/evtol-devcontainer:humble-px4-1.15.4
+  "image": "ghcr.io/lilcout/evtol-devcontainer@sha256:05a8898f2e6ad0e0b9a17434df058d53e7b8b58735f1a3bf811cc9b3f6d06513",
+  // Or build the image from container/image/ instead of "image":
+  // "build": { "dockerfile": "../container/image/Dockerfile", "context": "../container/image" },
 
   "runArgs": [
     /// [GPU] WSL's GPU device

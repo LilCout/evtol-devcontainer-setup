@@ -19,7 +19,9 @@ evtol/                  ← this repo; open it in VS Code on your computer
 
 `container/image/` is the image's build context (`Dockerfile`, `deps.repos`);
 `container/linux/` and `container/windows/` hold the `devcontainer.json`
-templates, which run `container/xauth.sh` on Linux.
+templates, which run `container/xauth.sh` on Linux. [container/README.md](container/README.md)
+explains how the pieces work, and [container/ADAPTING.md](container/ADAPTING.md)
+how to build a similar setup for another project.
 
 ## Setup
 

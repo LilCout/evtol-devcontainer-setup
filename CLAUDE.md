@@ -4,7 +4,7 @@ It is based on the evtol-dev GitHub repo (https://github.com/Equipe-eVTOL-ITA/ev
 
 https://github.com/LilCout/evtol-devcontainer-setup features the Dockerfile and other files I used to build the image. This project is using Linux with an NVIDIA card as an example, by the general intent is to be able to use the Dev Container on Windows and other graphics cards, too, through the files in the evtol-devcontainer-setup repo.
 
-The evtol-devcontainer-setup repo mentions evtol-dev patches, but this project is built from the ground up. Just the scripts folder, the tasks.json file, evtol.repos and .gitignore were copied from evtol-dev, with many changes to fulfill my objective. `dev/scripts/setup.sh` is new: it sets up the workspace for the first time.
+The evtol-devcontainer-setup repo mentions evtol-dev patches, but this project is built from the ground up. Just the scripts folder, the tasks.json file, evtol.repos and .gitignore were copied from evtol-dev, with many changes to fulfill my objective. `dev/scripts/setup.sh` is new: it sets up the workspace for the first time. The copied files were last compared with evtol-dev at `da6791e` (2026-08-28); port later evtol-dev changes by hand.
 
 Notes:
 - `dev/` is the colcon workspace and the folder VS Code opens in the container. Its `src/` holds the team's repos (each its own git repo, ignored here). Fixes to them are pushed to their own remotes, not committed here.

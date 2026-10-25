@@ -11,6 +11,7 @@
 
 # Configuração local do Dev Container, copiada de container/{linux,windows}/
 /.devcontainer/
+.devcontainer.json
 
 # Saídas do colcon
 /dev/build/

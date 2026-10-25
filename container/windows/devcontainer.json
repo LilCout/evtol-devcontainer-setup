@@ -10,6 +10,12 @@
     /// [GPU] WSL's GPU device
     // "--device=/dev/dxg",
 
+    /// [USB] A serial device attached to WSL (usbipd attach --wsl) before the container starts.
+    /// ls /dev/ttyACM* /dev/ttyUSB* in WSL shows its name
+    // "--device=/dev/ttyACM0",
+    // "--group-add=keep-groups",               // rootless Podman
+    // "--group-add=20",                        // Docker: stat -c %g /dev/ttyACM0
+
     "--network=host",
 
     /// Shared memory for Fast DDS and Gazebo (the default is 64 MB)

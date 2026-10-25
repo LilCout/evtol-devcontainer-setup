@@ -169,6 +169,37 @@ Pick one block in your copy:
 | `[GPU]` (Windows) | WSL's `/dev/dxg` device and driver libraries, used through Mesa's d3d12 driver. |
 | `[No GPU]` | `LIBGL_ALWAYS_SOFTWARE=1`: works everywhere, but Gazebo is slow. |
 
+### USB devices
+
+The container sees no USB devices. A telemetry radio or a Pixhawk on USB
+stays on the host: QGroundControl (MAVLink forwarding) or `mavlink-router`
+there sends its MAVLink to the container over UDP, and unplugging it doesn't
+affect the container.
+
+To give the container a serial device, use the `[USB]` block in your
+template:
+
+- `--device` passes the device by its stable name in `/dev/serial/by-id`. It
+  must be plugged in when the container starts, or the container won't start.
+- The container's `user` needs the group that owns the device. With rootless
+  Podman, `keep-groups` passes on your groups, so your host user must be in it
+  (`dialout` or `uucp`, depending on the distro). Podman refuses `keep-groups`
+  twice, so leave this one out if `[Intel/AMD]`'s is on. With Docker, use the
+  group's numeric id: `stat -Lc %g /dev/serial/by-id/<id>` (`-L` reads the
+  device, not the link).
+
+On Windows, usbipd-win first attaches the device to WSL: `usbipd bind` once
+(as administrator), then `usbipd attach --wsl --busid <busid>` before the
+container starts. The rest happens inside WSL, as on Linux, with two
+differences:
+
+- WSL may have no `/dev/serial/by-id`, so the block uses the plain name
+  (`/dev/ttyACM0` or `/dev/ttyUSB0`), and the group is the distro's
+  (`stat -c %g /dev/ttyACM0` in WSL).
+- While attached, Windows can't use the device. To only forward MAVLink,
+  leave it on Windows: QGroundControl sees it as a COM port and forwards over
+  UDP, with no usbipd.
+
 ### Network and shared memory
 
 - **`--network=host`**: the container shares the host's network. DDS discovery

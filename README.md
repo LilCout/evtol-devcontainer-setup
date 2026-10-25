@@ -124,4 +124,11 @@ Named volumes survive container rebuilds: `evtol-ccache` (`~/.ccache`),
   it gets your uid/gid, so workspace files stay yours. With rootless Podman this
   needs Dev Containers CLI 0.76+ and VS Code set to `podman`, not a `docker`
   alias.
+- On Linux, prefer rootless Podman. With rootful Docker, root in the
+  container is root on your computer, and the container installs packages and
+  runs Claude Code with passwordless `sudo`.
+- USB devices (telemetry radio, Pixhawk) stay on your computer: QGroundControl
+  or `mavlink-router` forwards their MAVLink to the container over UDP. To pass
+  one into the container, see "USB devices" in
+  [container/README.md](container/README.md).
 - `ROS_DOMAIN_ID` is left at 0, like the team's machines.

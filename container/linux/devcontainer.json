@@ -18,6 +18,12 @@
     // "--group-add=keep-groups",               // rootless Podman
     // "--group-add=109", "--group-add=44",     // Docker: stat -c %g /dev/dri/renderD128 /dev/dri/card0
 
+    /// [USB] A serial device (radio, Pixhawk); the container won't start while it's unplugged.
+    /// ls -l /dev/serial/by-id shows its <id> and tty
+    // "--device=/dev/serial/by-id/<id>:/dev/ttyUSB0",
+    // "--group-add=keep-groups",               // rootless Podman; skip if [Intel/AMD]'s is on
+    // "--group-add=20",                        // Docker: stat -Lc %g /dev/serial/by-id/<id>
+
     /// Lets Gazebo open the X socket on SELinux/AppArmor distros
     "--security-opt=label=disable",
     "--network=host",

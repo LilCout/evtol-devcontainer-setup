@@ -45,6 +45,9 @@ QGroundControl on Windows see each other. On Windows this only works with:
 
 - **Docker Engine or Podman installed inside your WSL 2 distro**, not Docker
   Desktop. With Podman, set VS Code's `dev.containers.dockerPath` to `podman`.
+  On Docker Desktop, Gazebo and PX4 start, but PX4 never connects to the
+  agent (`uxrce_dds_client status` in the `pxh>` shell says `disconnected`),
+  so missions fail with `no /fmu/out/vehicle_odometry received`.
 - **WSL's mirrored networking.** Add this to `%UserProfile%\.wslconfig`, then
   run `wsl --shutdown`:
 

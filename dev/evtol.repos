@@ -81,10 +81,6 @@ repositories:
     version: main
 
   # ---------- Layer 5: competition ----------
-  sae2026:
-    type: git
-    url: https://github.com/Equipe-eVTOL-ITA/sae2026.git
-    version: main
   cbr2026:
     type: git
     url: https://github.com/Equipe-eVTOL-ITA/cbr2026.git

@@ -45,9 +45,7 @@ QGroundControl on Windows see each other. On Windows this only works with:
 
 - **Docker Engine or Podman installed inside your WSL 2 distro**, not Docker
   Desktop. With Podman, set VS Code's `dev.containers.dockerPath` to `podman`.
-  On Docker Desktop, Gazebo and PX4 start, but PX4 never connects to the
-  agent (`uxrce_dds_client status` in the `pxh>` shell says `disconnected`),
-  so missions fail with `no /fmu/out/vehicle_odometry received`.
+  For Docker Desktop, see [below](#docker-desktop).
 - **WSL's mirrored networking.** Add this to `%UserProfile%\.wslconfig`, then
   run `wsl --shutdown`:
 
@@ -70,6 +68,31 @@ the commented `"build"` line.
 If VS Code fails to open the container the first time, run **Developer: Reload
 Window** and try again before choosing **Rebuild Container**, which recreates
 the container and reinstalls its features.
+
+#### Docker Desktop
+
+With `--network=host`, Docker Desktop has no setting where both PX4 links
+work:
+
+- With **Enable host networking** on (Settings > Resources > Network), Gazebo
+  and PX4 start, but PX4 never connects to the agent
+  (`uxrce_dds_client status` in the `pxh>` shell says `disconnected`), so
+  missions fail with `no /fmu/out/vehicle_odometry received`.
+- With it off, PX4 connects to the agent, but QGroundControl on Windows
+  doesn't see PX4.
+
+A bridge network with PX4's ground station port published should get both
+working (not tested yet). In `.devcontainer/devcontainer.json`, replace
+`"--network=host"` in `"runArgs"` with:
+
+```jsonc
+"-p", "18570:18570/udp",
+```
+
+Then run **Rebuild Container**. In QGroundControl, add a UDP link (Application
+Settings > Comm Links) with server `127.0.0.1` and port `18570`, and connect.
+The container then doesn't see ROS 2 on the team's network, so
+**voo: ground station** doesn't reach a real drone.
 
 Inside the container, VS Code opens `dev/`. From there:
 
